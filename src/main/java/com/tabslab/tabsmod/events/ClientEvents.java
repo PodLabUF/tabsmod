@@ -2,24 +2,33 @@ package com.tabslab.tabsmod.events;
 
 import com.google.gson.GsonBuilder;
 import com.tabslab.tabsmod.TabsMod;
+import com.tabslab.tabsmod.blocks.BlockA;
+import com.tabslab.tabsmod.blocks.BlockB;
+import com.tabslab.tabsmod.commands.Session;
 import com.tabslab.tabsmod.data.Data;
 import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
+import com.tabslab.tabsmod.init.BlockInit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent.BreakEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +46,24 @@ public class ClientEvents {
 
     @Mod.EventBusSubscriber(bus= Mod.EventBusSubscriber.Bus.FORGE, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ForgeEvents {
+
+        // Register custom commands
+        @SubscribeEvent
+        public static void registerCommands(RegisterCommandsEvent event) {
+            Session.register(event.getDispatcher());
+        }
+
+        // Will be run when a block is broken
+        @SubscribeEvent
+        public static void onBlockBreak(BreakEvent event) {
+            Block block = event.getState().getBlock();
+            if (block.equals(BlockInit.BLOCK_A.get())) {
+                BlockA.broken(event);
+            } else if (block.equals(BlockInit.BLOCK_B.get())) {
+                BlockB.broken(event);
+            }
+            Data.respawnBlocks(event.getPlayer().getLevel(), false);
+        }
 
         @SubscribeEvent
         public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
@@ -60,7 +87,15 @@ public class ClientEvents {
         public static void playerJoinedWorld(EntityJoinLevelEvent event) {
             if (event.getEntity() instanceof Player && event.getLevel().isClientSide) {
 
-                // Player just joined world
+                // Set entity
+                // TODO: Fix
+                Data.setPlayerEntity(event.getEntity());
+
+                // First, spawn block_a and block_b equidistant from player
+                Level level = event.getLevel();
+                Data.respawnBlocks(level, true);
+
+                // Begin timer
                 Timer.startTimer();
 
                 // Get event data
@@ -76,7 +111,7 @@ public class ClientEvents {
                 data.put("game_time", lvl.getGameTime());
                 data.put("difficulty", lvl.getDifficulty().getKey());
                 data.put("spawn_angle", lvl.getSpawnAngle());
-                data.put("spawn_location", String.join("`", new GsonBuilder().create().toJson(Map.of(
+                data.put("spawn_position", String.join("`", new GsonBuilder().create().toJson(Map.of(
                         "x", lvl.getXSpawn(),
                         "y", lvl.getYSpawn(),
                         "z", lvl.getZSpawn()
@@ -221,5 +256,7 @@ public class ClientEvents {
                 Data.printSummary();
             }
         }
+
+
     }
 }

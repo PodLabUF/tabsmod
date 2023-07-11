@@ -24,11 +24,12 @@ public class BlockInit {
 
     // Define custom block behaviors
     private static final BlockBehaviour.Properties unbreakableStone = BlockBehaviour.Properties.of(Material.STONE).strength(-1.0F);
+    private static final BlockBehaviour.Properties onePunchStone = BlockBehaviour.Properties.of(Material.STONE).strength(0.01F);
     private static final BlockBehaviour.Properties unbreakableFence = BlockBehaviour.Properties.of(Material.WOOD).strength(-1.0F);
 
     // Create custom blocks
-    public static final RegistryObject<Block> BLOCK_A = BLOCKS.register("block_a", () -> new BlockA(unbreakableStone));
-    public static final RegistryObject<Block> BLOCK_B = BLOCKS.register("block_b", () -> new BlockB(unbreakableStone));
+    public static final RegistryObject<Block> BLOCK_A = BLOCKS.register("block_a", () -> new BlockA(onePunchStone));
+    public static final RegistryObject<Block> BLOCK_B = BLOCKS.register("block_b", () -> new BlockB(onePunchStone));
     public static final RegistryObject<Block> TABS_FENCE = BLOCKS.register("tabs_fence", () -> new FenceBlock(unbreakableFence));
 
     @SubscribeEvent
