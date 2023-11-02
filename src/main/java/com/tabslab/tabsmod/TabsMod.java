@@ -16,8 +16,10 @@ import org.slf4j.Logger;
 @Mod(TabsMod.MODID)
 public class TabsMod {
     public static final String MODID = "tabsmod";
+    private static boolean dev;
     public TabsMod() {
         final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        dev = false;
 
         BlockInit.BLOCKS.register(modEventBus);
 
@@ -32,5 +34,19 @@ public class TabsMod {
         ExpHud.endSession();
         Timer.endSession();
         Data.endSession();
+    }
+
+    public static void setDev(boolean newValue) {
+        dev = newValue;
+        if (dev) {
+            System.out.println("-----------------------------------------");
+            System.out.println("Dev Mode Enabled");
+            System.out.println("No new events will be logged.");
+            System.out.println("-----------------------------------------");
+        }
+    }
+
+    public static boolean getDev() {
+        return dev;
     }
 }

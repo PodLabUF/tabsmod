@@ -9,6 +9,8 @@ import com.tabslab.tabsmod.data.Data;
 import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -59,10 +61,12 @@ public class ClientEvents {
             Block block = event.getState().getBlock();
             if (block.equals(BlockInit.BLOCK_A.get())) {
                 BlockA.broken(event);
+                Data.respawnBlocks(event.getPlayer().getLevel(), false);
             } else if (block.equals(BlockInit.BLOCK_B.get())) {
                 BlockB.broken(event);
+                Data.respawnBlocks(event.getPlayer().getLevel(), false);
             }
-            Data.respawnBlocks(event.getPlayer().getLevel(), false);
+
         }
 
         @SubscribeEvent
@@ -84,51 +88,47 @@ public class ClientEvents {
         }
 
         @SubscribeEvent
-        public static void playerJoinedWorld(EntityJoinLevelEvent event) {
-            if (event.getEntity() instanceof Player && event.getLevel().isClientSide) {
+        public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
 
-                // Set entity
-                // TODO: Fix
-                Data.setPlayerEntity(event.getEntity());
+            // Set entity
+            Data.setPlayerEntity(event.getEntity());
 
-                // First, spawn block_a and block_b equidistant from player
-                Level level = event.getLevel();
-                Data.respawnBlocks(level, true);
+            // First, spawn block_a and block_b equidistant from player
+            Data.respawnBlocks(event.getEntity().getLevel(), true);
 
-                // Begin timer
-                Timer.startTimer();
+            // Begin timer
+            Timer.startTimer();
 
-                // Get event data
-                long time = Timer.timeElapsed();
+            // Get event data
+            long time = Timer.timeElapsed();
 
-                // Join level event
-                Map<String, Object> data = new HashMap<>();
-                String name = event.getEntity().getName().getString();
+            // Join level event
+            Map<String, Object> data = new HashMap<>();
+            String name = event.getEntity().getName().getString();
 
-                // Get level data
-                LevelData lvl = event.getLevel().getLevelData();
-                data.put("day_time", lvl.getDayTime());
-                data.put("game_time", lvl.getGameTime());
-                data.put("difficulty", lvl.getDifficulty().getKey());
-                data.put("spawn_angle", lvl.getSpawnAngle());
-                data.put("spawn_position", String.join("`", new GsonBuilder().create().toJson(Map.of(
-                        "x", lvl.getXSpawn(),
-                        "y", lvl.getYSpawn(),
-                        "z", lvl.getZSpawn()
-                ))));
-                data.put("is_hardcore", lvl.isHardcore());
-                lvl.setRaining(false);
-                data.put("is_raining", lvl.isRaining());
-                data.put("is_thundering", lvl.isThundering());
+            // Get level data
+            ClientLevel.ClientLevelData lvl = Minecraft.getInstance().level.getLevelData();
+            data.put("day_time", lvl.getDayTime());
+            data.put("game_time", lvl.getGameTime());
+            data.put("difficulty", lvl.getDifficulty().getKey());
+            data.put("spawn_angle", lvl.getSpawnAngle());
+            data.put("spawn_position", String.join("`", new GsonBuilder().create().toJson(Map.of(
+                    "x", lvl.getXSpawn(),
+                    "y", lvl.getYSpawn(),
+                    "z", lvl.getZSpawn()
+            ))));
+            data.put("is_hardcore", lvl.isHardcore());
+            lvl.setRaining(false);
+            data.put("is_raining", lvl.isRaining());
+            data.put("is_thundering", lvl.isThundering());
 
-                // Set name
-                Data.setName(name);
+            // Set name
+            Data.setName(name);
 
-                // Phase 1 start event
-                Data.addEvent("phase_1_start", time);
+            // Phase 1 start event
+            Data.addEvent("phase_1_start", time);
 
-                Data.addEvent("player_join_level", time, data);
-            }
+            Data.addEvent("player_join_level", time, data);
         }
 
         @SubscribeEvent

@@ -1,12 +1,14 @@
 package com.tabslab.tabsmod.data;
 
+import com.tabslab.tabsmod.TabsMod;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -25,13 +27,11 @@ public class Data {
     public static void setPlayerEntity(Entity entity) {
         playerEntity = entity;
         System.out.println("Entity Set");
-        System.out.println("Block Position:");
-        System.out.println(entity.blockPosition().toShortString());
         System.out.println("Position:");
         System.out.println(entity.position());
-        System.out.println("GetOnPos:");
-        System.out.println(entity.getOnPos());
-        System.out.println("X: " + entity.getX() + ", Y: " + entity.getY() + ", Z: " + entity.getZ());
+
+        System.out.println("Player Chunk: ");
+        System.out.println(entity.chunkPosition());
     }
 
     public static void setBlockPositions(Map<String, BlockPos> positions) {
@@ -49,76 +49,91 @@ public class Data {
 
     public static void respawnBlocks(Level lvl, boolean initialSpawn) {
 
-        // First, remove old blocks if it isn't the initial level
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            // First, remove old blocks if it isn't the initial level
 
-        if (!initialSpawn) {
-            BlockPos block_a_pos = blockPositions.get("block_a");
-            BlockPos block_b_pos = blockPositions.get("block_b");
+            if (!initialSpawn) {
+                BlockPos block_a_pos = blockPositions.get("block_a");
+                BlockPos block_b_pos = blockPositions.get("block_b");
 
-            Block block_a = lvl.getBlockState(block_a_pos).getBlock();
-            Block block_b = lvl.getBlockState(block_b_pos).getBlock();
+                Block block_a = lvl.getBlockState(block_a_pos).getBlock();
+                Block block_b = lvl.getBlockState(block_b_pos).getBlock();
 
-            if (block_a.equals(BlockInit.BLOCK_A.get())) {
-                // If block at position is a BlockA...
-                lvl.removeBlock(block_a_pos, false);
+                if (block_a.equals(BlockInit.BLOCK_A.get())) {
+                    // If block at position is a BlockA...
+                    lvl.removeBlock(block_a_pos, false);
+                }
+
+                if (block_b.equals(BlockInit.BLOCK_B.get())) {
+                    // If block at position is a BlockB...
+                    lvl.removeBlock(block_b_pos, false);
+                }
             }
 
-            if (block_b.equals(BlockInit.BLOCK_B.get())) {
-                // If block at position is a BlockB...
-                lvl.removeBlock(block_b_pos, false);
+            // Next, respawn them in new random position, equidistant from player, in the same chunk
+            BlockPos playerPos = playerEntity.getOnPos();
+            BlockPos block_a_pos_new = new BlockPos(playerPos.getX() + 3, playerPos.getY() + 1, playerPos.getZ() + 3);
+            BlockPos block_b_pos_new = new BlockPos(playerPos.getX() - 3, playerPos.getY() + 1, playerPos.getZ() + 3);
+
+            boolean block_a_in_chunk = lvl.getChunk(block_a_pos_new.getX() >> 4, block_a_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
+            boolean block_b_in_chunk = lvl.getChunk(block_b_pos_new.getX() >> 4, block_b_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
+
+//            while()
+
+            boolean set_a = lvl.setBlockAndUpdate(block_a_pos_new, BlockInit.BLOCK_A.get().defaultBlockState());
+            boolean set_b = lvl.setBlockAndUpdate(block_b_pos_new, BlockInit.BLOCK_B.get().defaultBlockState());
+
+            // Log as event
+            Map<String, Object> data = new HashMap<>();
+            data.put("block_a_spawn", block_a_pos_new);
+            data.put("block_a_set", set_a);
+            data.put("block_b_spawn", block_b_pos_new);
+            data.put("block_b_set", set_b);
+            if (initialSpawn) {
+                addEvent("blocks_spawn_initial", 0, data);
+            } else {
+                long time = Timer.timeElapsed();
+                addEvent("blocks_spawn", time, data);
             }
+
+            // Update new block positions
+            blockPositions.clear();
+            blockPositions.put("block_a", block_a_pos_new);
+            blockPositions.put("block_b", block_b_pos_new);
         }
-
-        // Next, respawn them in new random position, equidistant from player
-        BlockPos playerPos = playerEntity.getOnPos();
-        BlockPos block_a_pos_new = new BlockPos(playerPos.getX() + 3, playerPos.getY() + 3, playerPos.getZ() + 1);
-        BlockPos block_b_pos_new = new BlockPos(playerPos.getX() - 3, playerPos.getY() - 3, playerPos.getZ() + 1);
-        boolean set_a = lvl.setBlock(block_a_pos_new, BlockInit.BLOCK_A.get().defaultBlockState(), 1);
-        boolean set_b = lvl.setBlock(block_b_pos_new, BlockInit.BLOCK_B.get().defaultBlockState(), 1);
-
-        // Log as event
-        Map<String, Object> data = new HashMap<>();
-        data.put("block_a_spawn", block_a_pos_new);
-        data.put("block_a_set", set_a);
-        data.put("block_b_spawn", block_b_pos_new);
-        data.put("block_b_set", set_b);
-        if (initialSpawn) {
-            addEvent("blocks_spawn_initial", 0, data);
-        } else {
-            long time = Timer.timeElapsed();
-            addEvent("blocks_spawn", time, data);
-        }
-
-        // Update new block positions
-        blockPositions.clear();
-        blockPositions.put("block_a", block_a_pos_new);
-        blockPositions.put("block_b", block_b_pos_new);
     }
 
 
     public static void addEvent(String type, long time, Map<String, Object> data) {
-        Event evt = new Event(type, time, data);
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            Event evt = new Event(type, time, data);
 
-        // Print to log
-        System.out.println("-----------------------------------------");
-        System.out.println("Event Type: " + evt.getType());
-        System.out.println("Time: " + evt.getTime());
-        System.out.println("Data: " + evt.getDataString());
-        System.out.println("-----------------------------------------");
+            // Print to log
+            System.out.println("-----------------------------------------");
+            System.out.println("Event Type: " + evt.getType());
+            System.out.println("Time: " + evt.getTime());
+            System.out.println("Data: " + evt.getDataString());
+            System.out.println("-----------------------------------------");
 
-        evts.add(evt);
+            evts.add(evt);
+        }
     }
 
     public static void addEvent(String type, long time) {
-        Event evt = new Event(type, time);
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            Event evt = new Event(type, time);
 
-        // Print to log
-        System.out.println("-----------------------------------------");
-        System.out.println("Event Type: " + evt.getType());
-        System.out.println("Time: " + evt.getTime());
-        System.out.println("-----------------------------------------");
+            // Print to log
+            System.out.println("-----------------------------------------");
+            System.out.println("Event Type: " + evt.getType());
+            System.out.println("Time: " + evt.getTime());
+            System.out.println("-----------------------------------------");
 
-        evts.add(new Event(type, time));
+            evts.add(new Event(type, time));
+        }
     }
 
     public static void setName(String name) {
@@ -126,14 +141,20 @@ public class Data {
     }
 
     public static void printSummary() {
-        System.out.println("-----------------------------------------");
-        System.out.println("Event Summary");
-        System.out.println(evts);
-        System.out.println("-----------------------------------------");
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            System.out.println("-----------------------------------------");
+            System.out.println("Event Summary");
+            System.out.println(evts);
+            System.out.println("-----------------------------------------");
+        }
     }
 
     public static void endSession() {
-        writeToCSV();
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            writeToCSV();
+        }
         playerName = null;
         blockPositions.clear();
         evts.clear();
