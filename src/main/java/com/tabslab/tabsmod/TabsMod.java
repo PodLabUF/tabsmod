@@ -5,6 +5,7 @@ import com.tabslab.tabsmod.data.Data;
 import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
+import com.tabslab.tabsmod.init.ItemInit;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -22,6 +23,7 @@ public class TabsMod {
         dev = false;
 
         BlockInit.BLOCKS.register(modEventBus);
+        ItemInit.ITEMS.register(modEventBus);
 
         MinecraftForge.EVENT_BUS.register(this);
     }

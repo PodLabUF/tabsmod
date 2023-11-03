@@ -21,6 +21,7 @@ public class CreativeTab {
                         populator.accept(new ItemStack(BlockInit.BLOCK_A.get()));
                         populator.accept(new ItemStack(BlockInit.BLOCK_B.get()));
                         populator.accept(new ItemStack(BlockInit.TABS_FENCE.get()));
+                        populator.accept(new ItemStack(ItemInit.COIN.get()));
                     });
         });
     }
