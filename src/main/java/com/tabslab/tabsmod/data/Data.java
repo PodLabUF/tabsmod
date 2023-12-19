@@ -80,7 +80,11 @@ public class Data {
                 }*/
 
 
-                /*if (block_a.equals(BlockInit.BLOCK_A.get())) {
+
+                /*
+
+                this: respawns correctly when b is destoryed but weird when a is destoryed
+                if (block_a.equals(BlockInit.BLOCK_A.get())) {
                     // If block at position is a BlockA...
                     lvl.removeBlock(block_b_pos, false);
                 }
