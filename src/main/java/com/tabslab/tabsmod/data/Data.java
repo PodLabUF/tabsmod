@@ -9,12 +9,17 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+
 
 public class Data {
 
@@ -53,42 +58,78 @@ public class Data {
         if (!dev) {
             // First, remove old blocks if it isn't the initial level
 
-            if (!initialSpawn) {
+
+            if (!initialSpawn) { // if not initial spawn
+
                 BlockPos block_a_pos = blockPositions.get("block_a");
                 BlockPos block_b_pos = blockPositions.get("block_b");
 
                 Block block_a = lvl.getBlockState(block_a_pos).getBlock();
                 Block block_b = lvl.getBlockState(block_b_pos).getBlock();
 
-                if (block_a.equals(BlockInit.BLOCK_A.get())) {
-                    // If block at position is a BlockA...
-                    lvl.removeBlock(block_a_pos, false);
+
+                BlockState blockstate_a = lvl.getBlockState(block_a_pos);
+                BlockState blockstate_b = lvl.getBlockState(block_b_pos);
+
+                /*if (blockstate_a.isAir() && block_b.equals(BlockInit.BLOCK_B.get())) {
+                lvl.removeBlockEntity(block_b_pos);
                 }
 
-                if (block_b.equals(BlockInit.BLOCK_B.get())) {
-                    // If block at position is a BlockB...
+                else if (blockstate_b.isAir() && block_a.equals(BlockInit.BLOCK_A.get())) {
+                lvl.removeBlockEntity(block_a_pos);
+                }*/
+
+
+                /*if (block_a.equals(BlockInit.BLOCK_A.get())) {
+                    // If block at position is a BlockA...
                     lvl.removeBlock(block_b_pos, false);
                 }
+                else if (block_b.equals(BlockInit.BLOCK_B.get())) {
+                    // If block at position is a BlockB...
+                    lvl.removeBlock(block_a_pos, false);
+                }*/
+
+                /*if (blockstate_a.isAir()) {
+                    // If block at position is a BlockA...
+                    lvl.removeBlock(block_b_pos, false);
+                }
+                else if (blockstate_b.isAir()) {
+                    // If block at position is a BlockB...
+                    lvl.removeBlock(block_a_pos, false);
+                }*/
+
+
+                // isnt removing the old block properly, but respawn is okay?
+                if (block_a.equals(BlockInit.BLOCK_A.get()) || blockstate_a.isAir()) {
+                    // If block at position is a BlockA...
+                    lvl.destroyBlock(block_b_pos, false);
+                }
+                else if (block_b.equals(BlockInit.BLOCK_B.get()) || blockstate_b.isAir()) {
+                    // If block at position is a BlockB...
+                    lvl.destroyBlock(block_a_pos, false);
+                }
+
+
             }
 
             // Next, respawn them in new random position, equidistant from player, in the same chunk
             BlockPos playerPos = playerEntity.getOnPos();
-            BlockPos block_a_pos_new = new BlockPos(playerPos.getX() + 3, playerPos.getY() + 1, playerPos.getZ() + 3);
-            BlockPos block_b_pos_new = new BlockPos(playerPos.getX() - 3, playerPos.getY() + 1, playerPos.getZ() + 3);
+            BlockPos updated_block_a_pos_new = new BlockPos(playerPos.getX() + 3, playerPos.getY() + 1, playerPos.getZ() + 3);
+            BlockPos updated_block_b_pos_new = new BlockPos(playerPos.getX() - 3, playerPos.getY() + 1, playerPos.getZ() + 3);
 
-            boolean block_a_in_chunk = lvl.getChunk(block_a_pos_new.getX() >> 4, block_a_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
-            boolean block_b_in_chunk = lvl.getChunk(block_b_pos_new.getX() >> 4, block_b_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
 
-//            while()
+            //boolean block_a_in_chunk = lvl.getChunk(updated_block_a_pos_new.getX() >> 4, updated_block_a_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
+            //boolean block_b_in_chunk = lvl.getChunk(updated_block_b_pos_new.getX() >> 4, updated_block_b_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
 
-            boolean set_a = lvl.setBlockAndUpdate(block_a_pos_new, BlockInit.BLOCK_A.get().defaultBlockState());
-            boolean set_b = lvl.setBlockAndUpdate(block_b_pos_new, BlockInit.BLOCK_B.get().defaultBlockState());
 
-            // Log as event
+            boolean set_a = lvl.setBlockAndUpdate(updated_block_a_pos_new, BlockInit.BLOCK_A.get().defaultBlockState());
+            boolean set_b = lvl.setBlockAndUpdate(updated_block_b_pos_new, BlockInit.BLOCK_B.get().defaultBlockState());
+
+            // Log as event 
             Map<String, Object> data = new HashMap<>();
-            data.put("block_a_spawn", block_a_pos_new);
+            data.put("block_a_spawn", updated_block_a_pos_new);
             data.put("block_a_set", set_a);
-            data.put("block_b_spawn", block_b_pos_new);
+            data.put("block_b_spawn", updated_block_b_pos_new);
             data.put("block_b_set", set_b);
             if (initialSpawn) {
                 addEvent("blocks_spawn_initial", 0, data);
@@ -99,8 +140,10 @@ public class Data {
 
             // Update new block positions
             blockPositions.clear();
-            blockPositions.put("block_a", block_a_pos_new);
-            blockPositions.put("block_b", block_b_pos_new);
+
+            blockPositions.put("block_a", updated_block_a_pos_new);
+            blockPositions.put("block_b", updated_block_b_pos_new);
+
         }
     }
 

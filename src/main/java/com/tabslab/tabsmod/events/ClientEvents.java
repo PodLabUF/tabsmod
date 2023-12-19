@@ -61,11 +61,10 @@ public class ClientEvents {
             Block block = event.getState().getBlock();
             if (block.equals(BlockInit.BLOCK_A.get())) {
                 BlockA.broken(event);
-                Data.respawnBlocks(event.getPlayer().getLevel(), false);
             } else if (block.equals(BlockInit.BLOCK_B.get())) {
                 BlockB.broken(event);
-                Data.respawnBlocks(event.getPlayer().getLevel(), false);
             }
+            Data.respawnBlocks(event.getPlayer().getLevel(), false);
 
         }
 
