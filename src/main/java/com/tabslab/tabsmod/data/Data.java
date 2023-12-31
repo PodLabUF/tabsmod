@@ -71,38 +71,6 @@ public class Data {
                 BlockState blockstate_a = lvl.getBlockState(block_a_pos);
                 BlockState blockstate_b = lvl.getBlockState(block_b_pos);
 
-                /*if (blockstate_a.isAir() && block_b.equals(BlockInit.BLOCK_B.get())) {
-                lvl.removeBlockEntity(block_b_pos);
-                }
-
-                else if (blockstate_b.isAir() && block_a.equals(BlockInit.BLOCK_A.get())) {
-                lvl.removeBlockEntity(block_a_pos);
-                }*/
-
-
-
-                /*
-
-                this: respawns correctly when b is destoryed but weird when a is destoryed
-                if (block_a.equals(BlockInit.BLOCK_A.get())) {
-                    // If block at position is a BlockA...
-                    lvl.removeBlock(block_b_pos, false);
-                }
-                else if (block_b.equals(BlockInit.BLOCK_B.get())) {
-                    // If block at position is a BlockB...
-                    lvl.removeBlock(block_a_pos, false);
-                }*/
-
-                /*if (blockstate_a.isAir()) {
-                    // If block at position is a BlockA...
-                    lvl.removeBlock(block_b_pos, false);
-                }
-                else if (blockstate_b.isAir()) {
-                    // If block at position is a BlockB...
-                    lvl.removeBlock(block_a_pos, false);
-                }*/
-
-
                 // isnt removing the old block properly, but respawn is okay?
                 if (block_a.equals(BlockInit.BLOCK_A.get()) || blockstate_a.isAir()) {
                     // If block at position is a BlockA...
