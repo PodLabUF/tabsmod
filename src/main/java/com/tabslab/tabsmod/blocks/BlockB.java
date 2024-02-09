@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.event.level.BlockEvent;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,11 @@ public class BlockB extends Block {
         data.put("cumulative_points", ExpHud.getPts());
         Data.addEvent("block_a_break", time, data);
 
+    }
+
+    @Override
+    public void onPlace(BlockState state, Level world, BlockPos pos, BlockState state1, boolean myBool) {
+        Data.blockPositions.put("block_b", pos);
     }
 
     // This is triggered when block is punched (left mouse click)

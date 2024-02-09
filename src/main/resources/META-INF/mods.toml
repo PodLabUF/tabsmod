@@ -31,7 +31,7 @@ logoFile="tabsmod.png" #optional
 # A text field displayed in the mod UI
 credits="Thanks to the participants!" #optional
 # A text field displayed in the mod UI
-authors="Matthew Lamperski, Jialong Zhen" #optional
+authors="Matthew Lamperski, Jialong Zhen, Han Mach" #optional
 # Display Test controls the display for your mod in the server connection screen
 # MATCH_VERSION means that your mod will cause a red X if the versions on client and server differ. This is the default behaviour and should be what you choose if you have server and client elements to your mod.
 # IGNORE_SERVER_VERSION means that your mod will not cause a red X if it's present on the server but not on the client. This is what you should use if you're a server only mod.
@@ -61,6 +61,6 @@ This mod was created by the University of Florida's Translational and Applied Be
     modId="minecraft"
     mandatory=true
 # This version range declares a minimum of the current minecraft version up to but not including the next major version
-    versionRange="[1.19.3,1.20)"
+    versionRange="[1.19.2,1.20)"
     ordering="NONE"
     side="BOTH"

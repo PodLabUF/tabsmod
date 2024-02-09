@@ -6,6 +6,7 @@ import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
 import com.tabslab.tabsmod.init.ItemInit;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;

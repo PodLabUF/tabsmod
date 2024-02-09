@@ -19,6 +19,7 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.registries.RegistryObject;
 
 import java.sql.Time;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,6 +48,12 @@ public class BlockA extends Block {
         Data.addEvent("block_a_break", time, data);
 
     }
+
+    @Override
+    public void onPlace(BlockState state, Level world, BlockPos pos, BlockState state1, boolean myBool) {
+        Data.blockPositions.put("block_a", pos);
+    }
+
 
     // This is triggered when block is punched (left mouse click)
     @Override

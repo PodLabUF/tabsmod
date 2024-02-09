@@ -1,9 +1,9 @@
 package com.tabslab.tabsmod.data;
 
 import com.tabslab.tabsmod.TabsMod;
+import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
@@ -11,22 +11,19 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
+import java.util.*;
 
 public class Data {
 
     private static final ArrayList<Event> evts = new ArrayList<>();
     private static String playerName;
 
-    private static final Map<String, BlockPos> blockPositions = new HashMap<>();
+    public static final Map<String, BlockPos> blockPositions = new HashMap<>();
     private static Entity playerEntity;
 
     public static void setPlayerEntity(Entity entity) {
@@ -52,52 +49,54 @@ public class Data {
         return blockPositions.get("block_b");
     }
 
-    public static void respawnBlocks(Level lvl, boolean initialSpawn) {
+    public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
 
         boolean dev = TabsMod.getDev();
         if (!dev) {
             // First, remove old blocks if it isn't the initial level
 
+            BlockPos block_a_pos = blockPositions.get("block_a");
+            BlockPos block_b_pos = blockPositions.get("block_b");
 
-            if (!initialSpawn) { // if not initial spawn
-
-                BlockPos block_a_pos = blockPositions.get("block_a");
-                BlockPos block_b_pos = blockPositions.get("block_b");
-
-                Block block_a = lvl.getBlockState(block_a_pos).getBlock();
-                Block block_b = lvl.getBlockState(block_b_pos).getBlock();
-
-
-                BlockState blockstate_a = lvl.getBlockState(block_a_pos);
-                BlockState blockstate_b = lvl.getBlockState(block_b_pos);
-
-                // isnt removing the old block properly, but respawn is okay?
-                if (block_a.equals(BlockInit.BLOCK_A.get()) || blockstate_a.isAir()) {
-                    // If block at position is a BlockA...
-                    lvl.destroyBlock(block_b_pos, false);
-                }
-                else if (block_b.equals(BlockInit.BLOCK_B.get()) || blockstate_b.isAir()) {
-                    // If block at position is a BlockB...
-                    lvl.destroyBlock(block_a_pos, false);
-                }
-
-
+            if (block_a_pos == null || block_b_pos == null) {
+                block_a_pos = playerEntity.blockPosition();
+                block_b_pos = playerEntity.blockPosition();
+            } else {
+                // Give coins
+                int phase = Timer.currentPhase();
+                lvl.destroyBlock(block_a_pos, phase == 1 && blockBroken == BlockBroken.BlockA);
+                lvl.destroyBlock(block_b_pos, phase == 2 && blockBroken == BlockBroken.BlockB);
             }
 
-            // Next, respawn them in new random position, equidistant from player, in the same chunk
-            BlockPos playerPos = playerEntity.getOnPos();
-            BlockPos updated_block_a_pos_new = new BlockPos(playerPos.getX() + 3, playerPos.getY() + 1, playerPos.getZ() + 3);
-            BlockPos updated_block_b_pos_new = new BlockPos(playerPos.getX() - 3, playerPos.getY() + 1, playerPos.getZ() + 3);
+            // Get the chunks where block_a and block_b are located
+            LevelChunk chunk_a = lvl.getChunkAt(block_a_pos);
+            LevelChunk chunk_b = lvl.getChunkAt(block_b_pos);
 
+            // Generate two random positions within the chunks
+            Random random = new Random();
+            int chunkX_a = chunk_a.getPos().x;
+            int chunkZ_a = chunk_a.getPos().z;
+            int chunkX_b = chunk_b.getPos().x;
+            int chunkZ_b = chunk_b.getPos().z;
 
-            //boolean block_a_in_chunk = lvl.getChunk(updated_block_a_pos_new.getX() >> 4, updated_block_a_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
-            //boolean block_b_in_chunk = lvl.getChunk(updated_block_b_pos_new.getX() >> 4, updated_block_b_pos_new.getY() >> 4).getPos().equals(playerEntity.chunkPosition());
+            int y_a = block_a_pos.getY(); // maintain the y coordinate of block_a
+            int y_b = block_b_pos.getY(); // maintain the y coordinate of block_b
 
+            int newX_a = chunkX_a * 16 + random.nextInt(16);
+            int newZ_a = chunkZ_a * 16 + random.nextInt(16);
+            BlockPos updated_block_a_pos_new = new BlockPos(newX_a, y_a, newZ_a);
 
-            boolean set_a = lvl.setBlockAndUpdate(updated_block_a_pos_new, BlockInit.BLOCK_A.get().defaultBlockState());
-            boolean set_b = lvl.setBlockAndUpdate(updated_block_b_pos_new, BlockInit.BLOCK_B.get().defaultBlockState());
+            int newX_b = chunkX_b * 16 + random.nextInt(16);
+            int newZ_b = chunkZ_b * 16 + random.nextInt(16);
+            BlockPos updated_block_b_pos_new = new BlockPos(newX_b, y_b, newZ_b);
 
-            // Log as event 
+            // Place the blocks at the new random positions
+            BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
+            BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
+            boolean set_a = lvl.setBlockAndUpdate(updated_block_a_pos_new, blockStateA);
+            boolean set_b = lvl.setBlockAndUpdate(updated_block_b_pos_new, blockStateB);
+
+            // Log as event
             Map<String, Object> data = new HashMap<>();
             data.put("block_a_spawn", updated_block_a_pos_new);
             data.put("block_a_set", set_a);
@@ -116,6 +115,14 @@ public class Data {
             blockPositions.put("block_a", updated_block_a_pos_new);
             blockPositions.put("block_b", updated_block_b_pos_new);
 
+        }
+    }
+
+    private static void removeAllBlocks(Level lvl, Block targetBlock) {
+        for (BlockPos pos : BlockPos.betweenClosed(lvl.getMinBuildHeight(), 0, lvl.getMinBuildHeight(), lvl.getMaxBuildHeight(), 255, lvl.getMaxBuildHeight())) {
+            if (lvl.getBlockState(pos).getBlock() == targetBlock) {
+                lvl.destroyBlock(pos, true); // Drop the block as an item
+            }
         }
     }
 

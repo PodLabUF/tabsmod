@@ -5,6 +5,7 @@ import com.tabslab.tabsmod.TabsMod;
 import com.tabslab.tabsmod.blocks.BlockA;
 import com.tabslab.tabsmod.blocks.BlockB;
 import com.tabslab.tabsmod.commands.Session;
+import com.tabslab.tabsmod.data.BlockBroken;
 import com.tabslab.tabsmod.data.Data;
 import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
@@ -61,10 +62,11 @@ public class ClientEvents {
             Block block = event.getState().getBlock();
             if (block.equals(BlockInit.BLOCK_A.get())) {
                 BlockA.broken(event);
+                Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
             } else if (block.equals(BlockInit.BLOCK_B.get())) {
                 BlockB.broken(event);
+                Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
             }
-            Data.respawnBlocks(event.getPlayer().getLevel(), false);
 
         }
 
@@ -93,7 +95,7 @@ public class ClientEvents {
             Data.setPlayerEntity(event.getEntity());
 
             // First, spawn block_a and block_b equidistant from player
-            Data.respawnBlocks(event.getEntity().getLevel(), true);
+            Data.respawnBlocks(event.getEntity().getLevel(), true, BlockBroken.Neither);
 
             // Begin timer
             Timer.startTimer();
