@@ -26,6 +26,7 @@ public class Data {
     public static final Map<String, BlockPos> blockPositions = new HashMap<>();
     private static Entity playerEntity;
 
+
     public static void setPlayerEntity(Entity entity) {
         playerEntity = entity;
         System.out.println("Entity Set");
@@ -34,6 +35,10 @@ public class Data {
 
         System.out.println("Player Chunk: ");
         System.out.println(entity.chunkPosition());
+    }
+
+    public static void teleportPlayer(double x, double y, double z) {
+        playerEntity.moveTo(x, y, z);
     }
 
     public static void setBlockPositions(Map<String, BlockPos> positions) {

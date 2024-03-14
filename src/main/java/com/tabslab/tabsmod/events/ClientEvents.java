@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -23,6 +24,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -37,7 +39,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ClientEvents {
-
 
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ClientModBusEvents {
@@ -55,6 +56,21 @@ public class ClientEvents {
         public static void registerCommands(RegisterCommandsEvent event) {
             Session.register(event.getDispatcher());
         }
+
+        // Tick is unit of time within game's update cycle
+        @SubscribeEvent
+        public static void onTicks(TickEvent.PlayerTickEvent event) {
+            long time = Timer.timeElapsed();
+            int phase = Timer.currentPhase();
+            // if at the end of the tick event
+            if (event.phase == TickEvent.Phase.END) {
+                if (time >= 15000 && phase == 1) { // after 15 seconds and phase 1
+                    Data.teleportPlayer(10, -60, 10);
+                    Timer.setPhase(2);
+                }
+            }
+        }
+
 
         // Will be run when a block is broken
         @SubscribeEvent
