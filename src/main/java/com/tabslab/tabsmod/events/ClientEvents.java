@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -23,6 +24,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -37,7 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ClientEvents {
-
+    private static boolean initialBlockBreak;
+    private static boolean intervalStart = false;
 
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ClientModBusEvents {
@@ -56,6 +59,19 @@ public class ClientEvents {
             Session.register(event.getDispatcher());
         }
 
+        // Tick is unit of time within game's update cycle
+        @SubscribeEvent
+        public static void onTicks(TickEvent.PlayerTickEvent event) {
+            // if at the end of the tick event
+            if (event.phase == TickEvent.Phase.END) {
+                if (initialBlockBreak && !intervalStart) { // if first block is broken and interval hasnt started, but needs to add if first reinforced block is broken
+                    System.out.printf("Interval started\n");
+                    Data.generateIntervals();
+                    intervalStart = true;
+                }
+            }
+        }
+
         // Will be run when a block is broken
         @SubscribeEvent
         public static void onBlockBreak(BreakEvent event) {
@@ -63,9 +79,11 @@ public class ClientEvents {
             if (block.equals(BlockInit.BLOCK_A.get())) {
                 BlockA.broken(event);
                 Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
+                initialBlockBreak = true;
             } else if (block.equals(BlockInit.BLOCK_B.get())) {
                 BlockB.broken(event);
                 Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
+                initialBlockBreak = true;
             }
 
         }
@@ -96,6 +114,9 @@ public class ClientEvents {
 
             // First, spawn block_a and block_b equidistant from player
             Data.respawnBlocks(event.getEntity().getLevel(), true, BlockBroken.Neither);
+
+            // Flag for interval
+            initialBlockBreak = false;
 
             // Begin timer
             Timer.startTimer();
