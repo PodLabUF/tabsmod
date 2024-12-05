@@ -20,7 +20,6 @@ public class Timer {
 
     }
 
-
     public static long timeElapsed() {
         return System.currentTimeMillis() - startTime;
     }

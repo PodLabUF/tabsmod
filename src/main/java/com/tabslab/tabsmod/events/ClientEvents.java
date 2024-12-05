@@ -39,6 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ClientEvents {
+    private static boolean initialBlockBreak;
+    private static boolean intervalStart = false;
 
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ClientModBusEvents {
@@ -60,17 +62,15 @@ public class ClientEvents {
         // Tick is unit of time within game's update cycle
         @SubscribeEvent
         public static void onTicks(TickEvent.PlayerTickEvent event) {
-            long time = Timer.timeElapsed();
-            int phase = Timer.currentPhase();
             // if at the end of the tick event
             if (event.phase == TickEvent.Phase.END) {
-                if (time >= 15000 && phase == 1) { // after 15 seconds and phase 1
-                    Data.teleportPlayer(10, -60, 10);
-                    Timer.setPhase(2);
+                if (initialBlockBreak && !intervalStart) { // if first block is broken and interval hasnt started, but needs to add if first reinforced block is broken
+                    System.out.printf("Interval started\n");
+                    Data.generateIntervals();
+                    intervalStart = true;
                 }
             }
         }
-
 
         // Will be run when a block is broken
         @SubscribeEvent
@@ -79,9 +79,11 @@ public class ClientEvents {
             if (block.equals(BlockInit.BLOCK_A.get())) {
                 BlockA.broken(event);
                 Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
+                initialBlockBreak = true;
             } else if (block.equals(BlockInit.BLOCK_B.get())) {
                 BlockB.broken(event);
                 Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
+                initialBlockBreak = true;
             }
 
         }
@@ -112,6 +114,9 @@ public class ClientEvents {
 
             // First, spawn block_a and block_b equidistant from player
             Data.respawnBlocks(event.getEntity().getLevel(), true, BlockBroken.Neither);
+
+            // Flag for interval
+            initialBlockBreak = false;
 
             // Begin timer
             Timer.startTimer();

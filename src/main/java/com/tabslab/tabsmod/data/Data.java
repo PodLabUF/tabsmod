@@ -22,9 +22,73 @@ public class Data {
 
     private static final ArrayList<Event> evts = new ArrayList<>();
     private static String playerName;
-
     public static final Map<String, BlockPos> blockPositions = new HashMap<>();
     private static Entity playerEntity;
+    private static double meanIntervalValue = 2000.0; // Mean interval value in ms (2s)
+    private static int numberOfSteps = 10; // Total number of intervals (steps)
+    private static double probability = .5; // Probability of reinforcement
+
+    //private static List<long> intervals;
+
+    public static void setParameters(double sec, int steps, double prob) {
+        Data.meanIntervalValue = sec;
+        Data.numberOfSteps = steps;
+        Data.probability = prob;
+    }
+
+    public static long[] generateIntervals() {
+        // get the current time
+        long baseTime = Timer.timeElapsed();
+
+        // array to store end times of each interval
+        long[] intervalDurations = new long[numberOfSteps];
+
+        // constant factor
+        double factor = -1.0 / Math.log(1 - probability);
+
+        // random generator for variability
+        Random random = new Random();
+
+        System.out.println("Generated Intervals:");
+
+        // iterate to generate interval
+        for (int n = 1; n <= numberOfSteps; n++) {
+            double t_n;
+
+            // the last interval
+            if (n == numberOfSteps) {
+                // calculate the last interval to ensure it is valid
+                t_n = factor * (1 + Math.log(numberOfSteps));
+            } else {
+                // Fleshler-Hoffman
+                t_n = factor * (
+                        1 + Math.log(numberOfSteps) +
+                                (numberOfSteps - n) * Math.log(numberOfSteps - n) -
+                                (numberOfSteps - n + 1) * Math.log(numberOfSteps - n + 1)
+                );
+            }
+
+            // introduce variability: Random multiplier between 0.7 and 1.0
+            double randomFactor = 0.7 + (0.3 * random.nextDouble());
+            long intervalDuration = (long) (t_n * meanIntervalValue * randomFactor);
+
+            // store the end time in the array
+            intervalDurations[n - 1] = intervalDuration;
+
+            // calculate end time of the interval
+            long endTime = baseTime + intervalDuration;
+
+            // start and end times
+            System.out.printf("Interval %d: Start = %d ms, End = %d ms, Interval Duration = %d ms%n",
+                    n, baseTime, endTime, intervalDuration);
+
+            // update baseTime to the end of the current interval for the next iteration
+            baseTime = endTime;
+        }
+
+        // return the array of total interval times
+        return intervalDurations;
+    }
 
 
     public static void setPlayerEntity(Entity entity) {
@@ -39,6 +103,7 @@ public class Data {
 
     public static void teleportPlayer(double x, double y, double z) {
         playerEntity.moveTo(x, y, z);
+        //playerEntity.setPositionAndUpdate(x, y, z);
     }
 
     public static void setBlockPositions(Map<String, BlockPos> positions) {
@@ -129,6 +194,8 @@ public class Data {
             }
         }
     }
+
+
 
 
     public static void addEvent(String type, long time, Map<String, Object> data) {
