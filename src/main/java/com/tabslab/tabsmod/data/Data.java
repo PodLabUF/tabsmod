@@ -36,12 +36,12 @@ public class Data {
         Data.probability = prob;
     }
 
-    public static long[] generateIntervals() {
+    public static List<Long> generateIntervals() {
         // get the current time
         long baseTime = Timer.timeElapsed();
 
-        // array to store end times of each interval
-        long[] intervalDurations = new long[numberOfSteps];
+        // list to store end times of each interval
+        List<Long> intervalDurations = new ArrayList<>();
 
         // constant factor
         double factor = -1.0 / Math.log(1 - probability);
@@ -68,12 +68,12 @@ public class Data {
                 );
             }
 
-            // introduce variability: Random multiplier between 0.7 and 1.0
+            // introduce variability: random multiplier between 0.7 and 1.0
             double randomFactor = 0.7 + (0.3 * random.nextDouble());
             long intervalDuration = (long) (t_n * meanIntervalValue * randomFactor);
 
-            // store the end time in the array
-            intervalDurations[n - 1] = intervalDuration;
+            // store the end time in the list
+            intervalDurations.add(intervalDuration);
 
             // calculate end time of the interval
             long endTime = baseTime + intervalDuration;
@@ -86,7 +86,15 @@ public class Data {
             baseTime = endTime;
         }
 
-        // return the array of total interval times
+        // shuffle list
+        Collections.shuffle(intervalDurations);
+
+        System.out.println("Shuffled Intervals:");
+        for (int i = 0; i < intervalDurations.size(); i++) {
+            System.out.printf("Interval %d Duration: %d ms%n", i + 1, intervalDurations.get(i));
+        }
+
+        // return the list of total interval times
         return intervalDurations;
     }
 
@@ -154,10 +162,10 @@ public class Data {
             int xPos = playerPos.getX();
             int yPos = playerPos.getY();
             int zPos = playerPos.getZ();
+
             // Respawns blocks to be at an equidistant position from player
             BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 3);
             BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 3);
-
 
             // Place the blocks at the new random positions
             BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
