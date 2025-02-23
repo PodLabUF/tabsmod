@@ -10,11 +10,15 @@ import com.tabslab.tabsmod.data.Data;
 import com.tabslab.tabsmod.exp.ExpHud;
 import com.tabslab.tabsmod.exp.Timer;
 import com.tabslab.tabsmod.init.BlockInit;
+import com.tabslab.tabsmod.init.ItemInit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.LevelData;
@@ -23,6 +27,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -31,13 +36,17 @@ import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.WaterAnimal;
 
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ClientEvents {
-
+    private static boolean initialBlockBreak;
+    private static boolean intervalStart = false;
+    private static Vec3 lastPosition = new Vec3(0, 0, 0);
 
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ClientModBusEvents {
@@ -56,18 +65,83 @@ public class ClientEvents {
             Session.register(event.getDispatcher());
         }
 
+        // Tick is unit of time within game's update cycle
+        @SubscribeEvent
+        public static void onTicks(TickEvent.PlayerTickEvent event) {
+            if (event.phase == TickEvent.Phase.END) {
+                // Check if the first block was broken and intervals haven't started
+                if (initialBlockBreak && !intervalStart) {
+                    System.out.printf("Interval started\n");
+
+                    // Generate intervals and pass them to the Timer
+                    long[] intervals = Data.generateIntervals();
+                    Timer.setIntervals(intervals); // Set the intervals in the Timer class
+
+                    intervalStart = true; // Mark intervals as started
+                }
+            }
+        }
+
+        @SubscribeEvent
+        public static void onItemPickup(PlayerEvent.ItemPickupEvent event) {
+            ItemStack itemStack = event.getStack();  // This should be the correct method to get the item stack
+            Player player = event.getEntity();       // This should correctly reference the player picking up the item
+
+            // Check if the item is indeed the coin and if the coin pickup should trigger a point increment
+            if (itemStack.getItem() == ItemInit.COIN.get()) {
+                ExpHud.incrementPts(1);  // This should add points when a coin is picked up
+                System.out.println("Coin picked up, points incremented");
+
+                // Resume the timer when the coin is picked up
+                Timer.resumeTimer();
+            }
+
+            // Coin picked up, reset the prompt
+            if (itemStack.getItem() == ItemInit.COIN.get()) {
+                ExpHud.setCoinAvailable(false);
+                ExpHud.setShowPickupPrompt(false);
+            }
+        }
+
+
         // Will be run when a block is broken
         @SubscribeEvent
         public static void onBlockBreak(BreakEvent event) {
             Block block = event.getState().getBlock();
-            if (block.equals(BlockInit.BLOCK_A.get())) {
-                BlockA.broken(event);
-                Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
-            } else if (block.equals(BlockInit.BLOCK_B.get())) {
-                BlockB.broken(event);
-                Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
-            }
 
+            // Check if either BlockA or BlockB is broken
+            if (block.equals(BlockInit.BLOCK_A.get()) || block.equals(BlockInit.BLOCK_B.get())) {
+                // Pause the timer when a coin is potentially dropped
+                Timer.pauseTimer();
+
+                // Mark the coin as available when it drops
+                ExpHud.setCoinAvailable(true);
+
+                // Check if timer has not been started yet
+                if (!Timer.timerStarted()) {
+                    Timer.startTimer();  // Start the timer on first block break
+                    initialBlockBreak = true;  // Set the flag indicating the first block has been broken
+                }
+
+                // Allow breaking BlockA and BlockB
+                if (block.equals(BlockInit.BLOCK_A.get())) {
+                    BlockA.broken(event);
+                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
+                } else if (block.equals(BlockInit.BLOCK_B.get())) {
+                    BlockB.broken(event);
+                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
+                }
+
+                // Start a delay after a coin drop to show the message if not picked up
+                Timer.scheduleDelayedTask(() -> {
+                    if (ExpHud.isCoinAvailable()) {  // Check if the coin is still available
+                        ExpHud.setShowPickupPrompt(true);
+                    }
+                }, 5000); // 5000 milliseconds or 5 seconds
+            } else {
+                // Prevent breaking all other blocks (ground)
+                event.setCanceled(true);
+            }
         }
 
         @SubscribeEvent
@@ -90,6 +164,8 @@ public class ClientEvents {
 
         @SubscribeEvent
         public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+            // Store session start time
+            Data.sessionStartTime = System.currentTimeMillis();
 
             // Set entity
             Data.setPlayerEntity(event.getEntity());
@@ -97,8 +173,8 @@ public class ClientEvents {
             // First, spawn block_a and block_b equidistant from player
             Data.respawnBlocks(event.getEntity().getLevel(), true, BlockBroken.Neither);
 
-            // Begin timer
-            Timer.startTimer();
+            // Flag for interval
+            initialBlockBreak = false;
 
             // Get event data
             long time = Timer.timeElapsed();
@@ -258,6 +334,43 @@ public class ClientEvents {
             }
         }
 
+        @SubscribeEvent
+        public static void onEntityJoin(EntityJoinLevelEvent event) {
+            Entity entity = event.getEntity();
+
+            if (entity instanceof Animal || entity instanceof WaterAnimal) {
+                event.setCanceled(true);
+            }
+        }
+
+        @SubscribeEvent
+        public static void onPlayerMove(TickEvent.PlayerTickEvent event) {
+            Player player = event.player;
+            Vec3 currentPosition = player.position();
+
+            if (!currentPosition.equals(lastPosition)) {
+                long time = Timer.timeElapsed();
+                Map<String, Object> data = new HashMap<>();
+                data.put("position", currentPosition);
+                Data.addEvent("player_move", time, data);
+                lastPosition = currentPosition;
+            }
+        }
+
+
+
+        @SubscribeEvent
+        public static void onKeyPress(InputEvent.Key event) {
+            long time = Timer.timeElapsed();
+            int key = event.getKey();
+            int action = event.getAction();
+
+            if (action == GLFW.GLFW_PRESS) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("key", key);
+                Data.addEvent("key_press", time, data);
+            }
+        }
 
     }
 }
