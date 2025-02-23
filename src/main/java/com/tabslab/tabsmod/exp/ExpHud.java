@@ -20,6 +20,36 @@ import java.util.Arrays;
 public class ExpHud {
     private static int numPts = 0;
     private static int currentPhase = 0;
+    private static double totalCoins = 0.0;
+    private static boolean coinAvailable = false;
+
+    private static boolean showPickupPrompt = false;
+
+    public static void setShowPickupPrompt(boolean show) {
+        showPickupPrompt = show;
+    }
+
+    public static boolean isCoinAvailable() {
+        return coinAvailable;
+    }
+
+    public static void setCoinAvailable(boolean available) {
+        coinAvailable = available;
+    }
+
+
+    // Method to increment coins based on the current interval and stimulus
+    public static void incrementCoins() {
+        int phase = Timer.currentPhase();
+        if (phase >= 1 && phase <= Timer.getTotalPhases()) {
+            totalCoins += 0.0005;
+        }
+    }
+
+    // Method to get the total coins as a formatted string
+    public static String getFormattedCoins() {
+        return String.format("%.4f", totalCoins);
+    }
 
     public static final IGuiOverlay HUD = (((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
 
@@ -28,6 +58,19 @@ public class ExpHud {
         int padding = 20;
         int linePadding = 5;
         int lineHeight = font.lineHeight;
+
+        if (showPickupPrompt) {
+            String pickupMessage = "Please pick up the coin to proceed";
+            int messageWidth = Minecraft.getInstance().font.width(pickupMessage);
+            int x = (screenWidth - messageWidth) / 2;
+            int y = screenHeight / 2; // Center vertically
+            GuiComponent.drawString(poseStack, Minecraft.getInstance().font, pickupMessage, x, y, 0xFFFFFF); // white color
+        }
+
+        // Check if stimulus point is reached and increment coins
+        if (Timer.isStimulusReached()) {
+            incrementCoins();
+        }
 
 
         // Is session over?
@@ -44,9 +87,9 @@ public class ExpHud {
             GuiComponent.drawString(poseStack, font, sessionOver, width, height, textColor);
 
         } else {
-            int[] widths = new int[3];
-            int[] heights = new int[3];
-            String[] strings = new String[3];
+            int[] widths = new int[4];
+            int[] heights = new int[4];
+            String[] strings = new String[4];
             Arrays.fill(widths, 0);
 
             // Time Elapsed
@@ -63,21 +106,6 @@ public class ExpHud {
             widths[1] = phaseWidth;
             heights[1] = heights[0] + lineHeight + linePadding;
 
-            // Check for phase changes
-            if (Timer.currentPhase() == currentPhase + 1) {
-
-                // Phase change occurred
-                if (currentPhase >= 1) {
-                    String evt_type = "phase_" + currentPhase + "_end";
-                    long time = Timer.timeElapsed();
-                    Data.addEvent(evt_type, time);
-                }
-
-            }
-
-            // Update currentPhase
-            currentPhase = Timer.currentPhase();
-
             // Current Points
             String pts = "Points: " + numPts;
             strings[2] = pts;
@@ -85,17 +113,18 @@ public class ExpHud {
             widths[2] = ptsWidth;
             heights[2] = heights[1] + lineHeight + linePadding;
 
-            int maxWidth = widths[0];
-            for (int i = 1; i < widths.length; i++) {
-                maxWidth = Math.max(maxWidth, widths[i]);
-            }
+            // Add Money Display
+            String coins = "Money: " + getFormattedCoins();
+            strings[3] = coins;
+            widths[3] = font.width(coins);
+            heights[3] = heights[2] + lineHeight + linePadding;
+
+            int maxWidth = Arrays.stream(widths).max().getAsInt();
 
             for (int i = 0; i < strings.length; i++) {
                 GuiComponent.drawString(poseStack, font, strings[i], screenWidth - maxWidth - padding, heights[i], textColor);
             }
         }
-
-
     }));
 
     public static int getPts() {
