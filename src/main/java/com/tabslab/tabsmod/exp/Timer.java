@@ -1,6 +1,7 @@
 package com.tabslab.tabsmod.exp;
 
 import com.tabslab.tabsmod.data.Data;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 
 import java.sql.Time;
@@ -11,18 +12,78 @@ public class Timer {
     private static long startTime = 0;
     private static long phaseLength = 300000; // Milliseconds
     private static int totalPhases = 3;
+    private static boolean timerStarted = false;
+    private static long[] intervals = new long[0];
+    private static int currentInterval = 0; // Track the current interval
+    private static long pauseTime = 0; // Track when the timer was paused
+    private static boolean timerPaused = false;
+
+    public static void pauseTimer() {
+        if (!timerPaused) {
+            pauseTime = System.currentTimeMillis();
+            timerPaused = true;
+        }
+    }
+
+    public static void resumeTimer() {
+        if (timerPaused) {
+            long pausedDuration = System.currentTimeMillis() - pauseTime;
+            startTime += pausedDuration; // Adjust start time by the paused duration
+            timerPaused = false;
+        }
+    }
+
+    public static long timeElapsed() {
+        if (!timerStarted || timerPaused) {
+            return pauseTime - startTime; // Return the time before pausing
+        }
+        return System.currentTimeMillis() - startTime;
+    }
+
+    public static void setIntervals(long[] generatedIntervals) {
+        intervals = generatedIntervals;
+        currentInterval = 0;
+    }
+
+    // Check if the stimulus point for the current interval has been reached
+    public static boolean isStimulusReached() {
+        long elapsedTime = timeElapsed();
+
+        // If all intervals are completed, return false
+        if (currentInterval >= intervals.length) return false;
+
+        // Check if elapsed time has passed the stimulus point of the current interval
+        if (elapsedTime >= intervals[currentInterval]) {
+            currentInterval++; // Move to the next interval
+            return true;       // Stimulus point reached
+        }
+        return false;
+    }
+
     public static int getTotalPhases() {
         return totalPhases;
     }
 
     public static void startTimer() {
-        startTime = System.currentTimeMillis();
+        if (!timerStarted) {
+            startTime = System.currentTimeMillis();
+            timerStarted = true;  // Set this to true when the timer starts
+        }
 
     }
+    public static boolean timerStarted() {
+        return timerStarted;  // Getter method to check if the timer has started
+    }
 
-
-    public static long timeElapsed() {
-        return System.currentTimeMillis() - startTime;
+    public static void scheduleDelayedTask(Runnable task, long delayMillis) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(delayMillis);
+                Minecraft.getInstance().execute(task);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public static String timeString() {
