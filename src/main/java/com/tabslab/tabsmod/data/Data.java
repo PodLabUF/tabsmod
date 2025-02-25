@@ -92,6 +92,18 @@ public class Data {
             }
         }
 
+        // converts the array into a list
+        List<Long> intervalList = new ArrayList<>();
+        for (long interval : intervalDurations) {
+            intervalList.add(interval);
+        }
+        Collections.shuffle(intervalList, random); // shuffles the list randomly
+
+        // shuffled list values are copied back into original array
+        for (int i = 0; i < intervalDurations.length; i++) {
+            intervalDurations[i] = intervalList.get(i);
+        }
+
         // To log intervals
         System.out.println("Generated Intervals:");
         long startTime = Timer.timeElapsed();
