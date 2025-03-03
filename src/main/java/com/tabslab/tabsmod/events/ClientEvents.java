@@ -36,8 +36,7 @@ import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.Mob;
 
 
 import java.util.HashMap;
@@ -338,7 +337,7 @@ public class ClientEvents {
         public static void onEntityJoin(EntityJoinLevelEvent event) {
             Entity entity = event.getEntity();
 
-            if (entity instanceof Animal || entity instanceof WaterAnimal) {
+            if (entity instanceof Mob) {
                 event.setCanceled(true);
             }
         }
