@@ -31,10 +31,10 @@ public class Data {
     private static Entity playerEntity;
     public static long sessionStartTime = 0;
     private static long sessionEndTime = 0;
-    private static double meanIntervalValue = 2000.0; // Mean interval value in ms (2s)
-    private static int numberOfSteps = 10; // Total number of intervals (steps)
-    private static double probability = .5; // Probability of reinforcement
-    private static long[] storedIntervals;
+   private static double meanIntervalValue = 2000.0; // mean interval value in ms (2s)
+    private static int numberOfSteps = 10; // total number of intervals (steps)
+    private static double probability = .5; // probability of reinforcement
+
 
     public static void setParameters(double sec, int steps, double prob) {
         Data.meanIntervalValue = sec;
@@ -42,82 +42,65 @@ public class Data {
         Data.probability = prob;
     }
 
-    public static long[] generateIntervals() {
-        long totalDuration = 600_000; // Total duration of 10 minutes in milliseconds
-        long firstHalfDuration = 300_000; // First 5 minutes in milliseconds
-        long secondHalfDuration = 300_000; // Second 5 minutes in milliseconds
+    public static List<Long> generateIntervals() {
+        // get the current time
         long baseTime = Timer.timeElapsed();
-        long[] intervalDurations = new long[numberOfSteps * 2];
+
+        // list to store end times of each interval
+        List<Long> intervalDurations = new ArrayList<>();
+
+        // constant factor
         double factor = -1.0 / Math.log(1 - probability);
+
+        // random generator for variability
         Random random = new Random();
 
-        long[][] rawDurations = new long[2][numberOfSteps];
-
-        // Generate raw intervals for each half
-        for (int half = 0; half < 2; half++) {
-            long duration = (half == 0) ? firstHalfDuration : secondHalfDuration;
-            long rawTotalDuration = 0;
-
-            for (int n = 1; n <= numberOfSteps; n++) {
-                double t_n;
-                if (n == numberOfSteps) {
-                    t_n = factor * (1 + Math.log(numberOfSteps));
-                } else {
-                    t_n = factor * (
-                            1 + Math.log(numberOfSteps) +
-                                    (numberOfSteps - n) * Math.log(numberOfSteps - n) -
-                                    (numberOfSteps - n + 1) * Math.log(numberOfSteps - n + 1)
-                    );
-                }
-                double randomFactor = 0.7 + (0.3 * random.nextDouble());
-                long intervalDuration = (long) (t_n * meanIntervalValue * randomFactor);
-                rawDurations[half][n - 1] = intervalDuration;
-                rawTotalDuration += intervalDuration;
-            }
-
-            // Scale intervals to fit exactly within the half duration
-            double scalingFactor = (double) duration / rawTotalDuration;
-            for (int i = 0; i < numberOfSteps; i++) {
-                rawDurations[half][i] = (long) (rawDurations[half][i] * scalingFactor);
-            }
-        }
-
-        // Combine intervals and adjust base time
-        int index = 0;
-        for (int half = 0; half < 2; half++) {
-            for (int i = 0; i < numberOfSteps; i++) {
-                intervalDurations[index] = rawDurations[half][i] + baseTime;
-                baseTime = intervalDurations[index];
-                index++;
-            }
-        }
-
-        // converts the array into a list
-        List<Long> intervalList = new ArrayList<>();
-        for (long interval : intervalDurations) {
-            intervalList.add(interval);
-        }
-        Collections.shuffle(intervalList, random); // shuffles the list randomly
-
-        // shuffled list values are copied back into original array
-        for (int i = 0; i < intervalDurations.length; i++) {
-            intervalDurations[i] = intervalList.get(i);
-        }
-
-        // To log intervals
         System.out.println("Generated Intervals:");
-        long startTime = Timer.timeElapsed();
-        for (int i = 0; i < intervalDurations.length; i++) {
-            long endTime = startTime + intervalDurations[i];
+
+        // iterate to generate interval
+        for (int n = 1; n <= numberOfSteps; n++) {
+            double t_n;
+
+            // the last interval
+            if (n == numberOfSteps) {
+                // calculate the last interval to ensure it is valid
+                t_n = factor * (1 + Math.log(numberOfSteps));
+            } else {
+                // Fleshler-Hoffman
+                t_n = factor * (
+                        1 + Math.log(numberOfSteps) +
+                                (numberOfSteps - n) * Math.log(numberOfSteps - n) -
+                                (numberOfSteps - n + 1) * Math.log(numberOfSteps - n + 1)
+                );
+            }
+
+            // introduce variability: random multiplier between 0.7 and 1.0
+            double randomFactor = 0.7 + (0.3 * random.nextDouble());
+            long intervalDuration = (long) (t_n * meanIntervalValue * randomFactor);
+
+            // store the end time in the list
+            intervalDurations.add(intervalDuration);
+
+            // calculate end time of the interval
+            long endTime = baseTime + intervalDuration;
+
+            // start and end times
             System.out.printf("Interval %d: Start = %d ms, End = %d ms, Interval Duration = %d ms%n",
-                    i + 1, startTime, endTime, intervalDurations[i]);
-            startTime = endTime; // Updates startTime for the next interval
+                    n, baseTime, endTime, intervalDuration);
+
+            // update baseTime to the end of the current interval for the next iteration
+            baseTime = endTime;
         }
 
-        // Store generated intervals
-        storedIntervals = new long[intervalDurations.length];
-        System.arraycopy(intervalDurations, 0, storedIntervals, 0, intervalDurations.length);
+        // shuffle list
+        Collections.shuffle(intervalDurations);
 
+        System.out.println("Shuffled Intervals:");
+        for (int i = 0; i < intervalDurations.size(); i++) {
+            System.out.printf("Interval %d Duration: %d ms%n", i + 1, intervalDurations.get(i));
+        }
+
+        // return the list of total interval times
         return intervalDurations;
     }
 
