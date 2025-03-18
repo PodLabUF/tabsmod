@@ -40,12 +40,13 @@ import net.minecraft.world.entity.Mob;
 
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ClientEvents {
     private static boolean initialBlockBreak;
-    private static boolean intervalStart = false;
     private static Vec3 lastPosition = new Vec3(0, 0, 0);
+    private static List<Long> intervals;
 
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD, modid=TabsMod.MODID, value=Dist.CLIENT)
     public static class ClientModBusEvents {
@@ -64,20 +65,12 @@ public class ClientEvents {
             Session.register(event.getDispatcher());
         }
 
-        // Tick is unit of time within game's update cycle
+        // tick is unit of time within game's update cycle
         @SubscribeEvent
         public static void onTicks(TickEvent.PlayerTickEvent event) {
-            if (event.phase == TickEvent.Phase.END) {
-                // Check if the first block was broken and intervals haven't started
-                if (initialBlockBreak && !intervalStart) {
-                    System.out.printf("Interval started\n");
-
-                    // Generate intervals and pass them to the Timer
-                    long[] intervals = Data.generateIntervals();
-                    Timer.setIntervals(intervals); // Set the intervals in the Timer class
-
-                    intervalStart = true; // Mark intervals as started
-                }
+            if (Timer.hasPhaseChanged() && initialBlockBreak) {
+                Timer.newIntervals();
+                Timer.startViTimer(); // "restart" Vi Timer on phase change
             }
         }
 
@@ -119,7 +112,46 @@ public class ClientEvents {
                 // Check if timer has not been started yet
                 if (!Timer.timerStarted()) {
                     Timer.startTimer();  // Start the timer on first block break
-                    initialBlockBreak = true;  // Set the flag indicating the first block has been broken
+                }
+
+                // if interval scheudule has started
+                if (initialBlockBreak && Timer.currentPhase() == 1) {
+                    if (Timer.viTimeRemaining() == 0) {
+                        if (block.equals(BlockInit.BLOCK_A.get())) {
+                            ExpHud.incrementCoins(.0005);
+                        }
+                        else { // block b
+                            ExpHud.incrementCoins(-.0005); // penalty for breaking the wrong one
+                        }
+                        Timer.nextViInterval();
+                    }
+                    else { // penalty for breaking before reinforcement time
+                        ExpHud.incrementCoins(-.0005);
+                    }
+                }
+                else if (Timer.currentPhase() == 2) {
+                    if (Timer.viTimeRemaining() == 0) {
+                        if (block.equals(BlockInit.BLOCK_B.get())) { // reinforcement if block b
+                            ExpHud.incrementCoins(.0005);
+                        }
+                        else { // block b
+                            ExpHud.incrementCoins(-.0005); // penalty for breaking the wrong one
+                        }
+                        Timer.nextViInterval();
+                    }
+                    else { // penalty for breaking before reinforcement time
+                        ExpHud.incrementCoins(-.0005);
+                    }
+                }
+                else if (Timer.currentPhase() == 3) {
+                    // do nothing
+                }
+
+                //  if the first block is broken, start interval schedule for each phase
+                if (!initialBlockBreak) {
+                    initialBlockBreak = true;
+                    ExpHud.incrementCoins(.0005);
+                    Timer.startViTimer();
                 }
 
                 // Allow breaking BlockA and BlockB
@@ -137,7 +169,8 @@ public class ClientEvents {
                         ExpHud.setShowPickupPrompt(true);
                     }
                 }, 5000); // 5000 milliseconds or 5 seconds
-            } else {
+            }
+            else {
                 // Prevent breaking all other blocks (ground)
                 event.setCanceled(true);
             }

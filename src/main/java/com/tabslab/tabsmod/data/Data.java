@@ -84,21 +84,12 @@ public class Data {
             // calculate end time of the interval
             long endTime = baseTime + intervalDuration;
 
-            // start and end times
-            System.out.printf("Interval %d: Start = %d ms, End = %d ms, Interval Duration = %d ms%n",
-                    n, baseTime, endTime, intervalDuration);
-
             // update baseTime to the end of the current interval for the next iteration
             baseTime = endTime;
         }
 
         // shuffle list
         Collections.shuffle(intervalDurations);
-
-        System.out.println("Shuffled Intervals:");
-        for (int i = 0; i < intervalDurations.size(); i++) {
-            System.out.printf("Interval %d Duration: %d ms%n", i + 1, intervalDurations.get(i));
-        }
 
         // return the list of total interval times
         return intervalDurations;
@@ -133,6 +124,74 @@ public class Data {
     }
 
     public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
+
+        boolean dev = TabsMod.getDev();
+        if (!dev) {
+            // First, remove old blocks if it isn't the initial level
+
+            BlockPos block_a_pos = blockPositions.get("block_a");
+            BlockPos block_b_pos = blockPositions.get("block_b");
+
+            if (block_a_pos == null || block_b_pos == null) {
+                block_a_pos = playerEntity.blockPosition();
+                block_b_pos = playerEntity.blockPosition();
+            } else {
+                // Give coins
+                int phase = Timer.currentPhase();
+                lvl.destroyBlock(block_a_pos, phase == 1 && blockBroken == BlockBroken.BlockA);
+                lvl.destroyBlock(block_b_pos, phase == 2 && blockBroken == BlockBroken.BlockB);
+            }
+
+            // Get the chunks where block_a and block_b are located
+            LevelChunk chunk_a = lvl.getChunkAt(block_a_pos);
+            LevelChunk chunk_b = lvl.getChunkAt(block_b_pos);
+
+            // Generate two random positions within the chunks
+            Random random = new Random();
+            int chunkX_a = chunk_a.getPos().x;
+            int chunkZ_a = chunk_a.getPos().z;
+            int chunkX_b = chunk_b.getPos().x;
+            int chunkZ_b = chunk_b.getPos().z;
+
+            // Gets position of player
+            BlockPos playerPos = playerEntity.getOnPos();
+            int xPos = playerPos.getX();
+            int yPos = playerPos.getY();
+            int zPos = playerPos.getZ();
+
+            // Respawns blocks to be at an equidistant position from player
+            BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 6);
+            BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 6);
+
+            // Place the blocks at the new random positions
+            BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
+            BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
+            boolean set_a = lvl.setBlockAndUpdate(updated_block_a_pos_new, blockStateA);
+            boolean set_b = lvl.setBlockAndUpdate(updated_block_b_pos_new, blockStateB);
+
+            // Log as event
+            Map<String, Object> data = new HashMap<>();
+            data.put("block_a_spawn", updated_block_a_pos_new);
+            data.put("block_a_set", set_a);
+            data.put("block_b_spawn", updated_block_b_pos_new);
+            data.put("block_b_set", set_b);
+            if (initialSpawn) {
+                addEvent("blocks_spawn_initial", 0, data);
+            } else {
+                long time = Timer.timeElapsed();
+                addEvent("blocks_spawn", time, data);
+            }
+
+            // Update new block positions
+            blockPositions.clear();
+
+            blockPositions.put("block_a", updated_block_a_pos_new);
+            blockPositions.put("block_b", updated_block_b_pos_new);
+
+        }
+    }
+
+    /*public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
         BlockPos playerPos = playerEntity.blockPosition();
         Random random = new Random();
         Vec3 direction = Vec3.directionFromRotation(0, random.nextInt(360));
@@ -187,7 +246,7 @@ public class Data {
         // Update the stored block positions
         Data.blockPositions.put("block_a", blockAPos);
         Data.blockPositions.put("block_b", blockBPos);
-    }
+    }*/
 
 
     private static void removeAllBlocks(Level lvl, Block targetBlock) {
@@ -281,13 +340,13 @@ public class Data {
 
 
             // Write stored intervals
-            if (storedIntervals != null) {
+            /*if (storedIntervals != null) {
                 pw.println("Generated Intervals:");
                 for (int i = 0; i < storedIntervals.length; i++) {
                     pw.println("Interval " + (i + 1) + ": " + storedIntervals[i] + " ms");
                 }
                 pw.println();
-            }
+            }*/
 
             // Write events
             String[] cols = { "Time", "Type", "Other Data" };

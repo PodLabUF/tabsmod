@@ -30,11 +30,6 @@ public class BlockA extends Block {
     }
 
     public static void broken(BlockEvent.BreakEvent event) {
-        // Check if stimulus point is reached and increment coins
-        if (Timer.isStimulusReached()) {
-            ExpHud.incrementCoins();
-        }
-
         // Add to event list
         long time = Timer.timeElapsed();
 
