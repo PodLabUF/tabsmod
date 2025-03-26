@@ -24,14 +24,14 @@ import java.io.PrintWriter;
 import java.util.*;
 
 public class Data {
-
+    public static List<Long> storedViIntervals = new ArrayList<>();
     private static final ArrayList<Event> evts = new ArrayList<>();
     private static String playerName;
     public static final Map<String, BlockPos> blockPositions = new HashMap<>();
     private static Entity playerEntity;
     public static long sessionStartTime = 0;
     private static long sessionEndTime = 0;
-   private static double meanIntervalValue = 2000.0; // mean interval value in ms (2s)
+    private static double meanIntervalValue = 2000.0; // mean interval value in ms (2s)
     private static int numberOfSteps = 10; // total number of intervals (steps)
     private static double probability = .5; // probability of reinforcement
 
@@ -90,6 +90,15 @@ public class Data {
 
         // shuffle list
         Collections.shuffle(intervalDurations);
+
+        storedViIntervals = new ArrayList<>(intervalDurations);
+        for (int i = 0; i < storedViIntervals.size(); i++) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("interval_index", i);
+            data.put("interval_duration_ms", storedViIntervals.get(i));
+            Data.addEvent("interval_generated", Timer.timeElapsed(), data);
+        }
+
 
         // return the list of total interval times
         return intervalDurations;
@@ -337,6 +346,15 @@ public class Data {
 
             // Add headers
             pw.println("Player Name: " + playerName);
+
+            if (storedViIntervals != null && !storedViIntervals.isEmpty()) {
+                pw.println("Generated Intervals (ms):");
+                for (int i = 0; i < storedViIntervals.size(); i++) {
+                    pw.println("Interval " + (i + 1) + ": " + storedViIntervals.get(i));
+                }
+                pw.println(); // newline for clarity
+            }
+
 
 
             // Write stored intervals
