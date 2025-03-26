@@ -103,15 +103,29 @@ public class ClientEvents {
 
             // Check if either BlockA or BlockB is broken
             if (block.equals(BlockInit.BLOCK_A.get()) || block.equals(BlockInit.BLOCK_B.get())) {
+                // TO COLLECT CSV DATA
+                Map<String, Object> data = new HashMap<>();
+                data.put("block_type", block.getDescriptionId());
+                data.put("position", event.getPos());
+                data.put("phase", Timer.currentPhase());
+                data.put("vi_time_remaining", Timer.viTimeRemaining());
+                Data.addEvent("block_broken", Timer.timeElapsed(), data);
                 // Pause the timer when a coin is potentially dropped
-                Timer.pauseTimer();
+                //Timer.pauseTimer();
 
                 // Mark the coin as available when it drops
-                ExpHud.setCoinAvailable(true);
+                //ExpHud.setCoinAvailable(true);
 
                 // Check if timer has not been started yet
                 if (!Timer.timerStarted()) {
                     Timer.startTimer();  // Start the timer on first block break
+                }
+                
+                //  if the first block is broken, start interval schedule for each phase
+                if (!initialBlockBreak) {
+                    initialBlockBreak = true;
+                    ExpHud.incrementCoins(.0005);
+                    Timer.startViTimer();
                 }
 
                 // if interval scheudule has started
@@ -154,6 +168,29 @@ public class ClientEvents {
                     Timer.startViTimer();
                 }
 
+                if (!ExpHud.isCoinAvailable()) {
+                    if (Timer.currentPhase() == 1 && block.equals(BlockInit.BLOCK_A.get())) {
+                        Timer.pauseTimer();
+                        ExpHud.setCoinAvailable(true);
+
+                        Timer.scheduleDelayedTask(() -> {
+                            if (ExpHud.isCoinAvailable()) {
+                                ExpHud.setShowPickupPrompt(true);
+                            }
+                        }, 5000);
+                    }
+                    else if (Timer.currentPhase() == 2 && block.equals(BlockInit.BLOCK_B.get())) {
+                        Timer.pauseTimer();
+                        ExpHud.setCoinAvailable(true);
+
+                        Timer.scheduleDelayedTask(() -> {
+                            if (ExpHud.isCoinAvailable()) {
+                                ExpHud.setShowPickupPrompt(true);
+                            }
+                        }, 5000);
+                    }
+                }
+
                 // Allow breaking BlockA and BlockB
                 if (block.equals(BlockInit.BLOCK_A.get())) {
                     BlockA.broken(event);
@@ -162,13 +199,6 @@ public class ClientEvents {
                     BlockB.broken(event);
                     Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
                 }
-
-                // Start a delay after a coin drop to show the message if not picked up
-                Timer.scheduleDelayedTask(() -> {
-                    if (ExpHud.isCoinAvailable()) {  // Check if the coin is still available
-                        ExpHud.setShowPickupPrompt(true);
-                    }
-                }, 5000); // 5000 milliseconds or 5 seconds
             }
             else {
                 // Prevent breaking all other blocks (ground)
