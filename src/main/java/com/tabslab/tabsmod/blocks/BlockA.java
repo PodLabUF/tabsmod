@@ -29,16 +29,7 @@ public class BlockA extends Block {
         super(properties);
     }
 
-
     public static void broken(BlockEvent.BreakEvent event) {
-
-        // Update points
-        int phase = Timer.currentPhase();
-        switch (phase) {
-            case 1 -> ExpHud.incrementPts(1);
-            case 2, 3 -> ExpHud.incrementPts(0);
-        }
-
         // Add to event list
         long time = Timer.timeElapsed();
 
