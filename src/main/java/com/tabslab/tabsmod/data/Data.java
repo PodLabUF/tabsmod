@@ -169,6 +169,7 @@ public class Data {
             int zPos = playerPos.getZ();
 
             // Respawns blocks to be at an equidistant position from player
+            // block a on left and block b on right ( *** adjust x pos *** )
             BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 6);
             BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 6);
 
@@ -354,17 +355,6 @@ public class Data {
                 }
                 pw.println(); // newline for clarity
             }
-
-
-
-            // Write stored intervals
-            /*if (storedIntervals != null) {
-                pw.println("Generated Intervals:");
-                for (int i = 0; i < storedIntervals.length; i++) {
-                    pw.println("Interval " + (i + 1) + ": " + storedIntervals[i] + " ms");
-                }
-                pw.println();
-            }*/
 
             // Write events
             String[] cols = { "Time", "Type", "Other Data" };

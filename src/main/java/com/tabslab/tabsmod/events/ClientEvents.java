@@ -124,7 +124,7 @@ public class ClientEvents {
                 //  if the first block is broken, start interval schedule for each phase
                 if (!initialBlockBreak) {
                     initialBlockBreak = true;
-                    ExpHud.incrementCoins(.0005);
+                    ExpHud.incrementCoins(.0005); // *** adjust point amount ***
                     Timer.startViTimer();
                 }
 
@@ -159,13 +159,6 @@ public class ClientEvents {
                 }
                 else if (Timer.currentPhase() == 3) {
                     // do nothing
-                }
-
-                //  if the first block is broken, start interval schedule for each phase
-                if (!initialBlockBreak) {
-                    initialBlockBreak = true;
-                    ExpHud.incrementCoins(.0005);
-                    Timer.startViTimer();
                 }
 
                 if (!ExpHud.isCoinAvailable()) {

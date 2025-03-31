@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class Timer {
     private static long startTime = 0;
+
+    // *** adjust phase length if necessary ***
     private static long phaseLength = 300000; // Milliseconds
     private static int totalPhases = 3;
     private static boolean timerStarted = false;
