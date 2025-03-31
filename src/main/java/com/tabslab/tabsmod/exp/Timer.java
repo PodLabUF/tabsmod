@@ -21,17 +21,23 @@ public class Timer {
     private static long pauseTime = 0; // Track when the timer was paused
     private static boolean timerPaused = false;
     private static int lastPhase = -1;
-
+    private static long viElapsedBeforePause = 0;
     // vi Timer
     private static List<Long> viIntervals;
-    private static int currentViIndex = -1;
+    public static int viIndex = -1;
     private static long viStartTime = 0;
     private static boolean viTimerRunning = false;
+    private static boolean viTimerPaused = false;
 
     public static void pauseTimer() {
         if (!timerPaused) {
             pauseTime = System.currentTimeMillis();
             timerPaused = true;
+        }
+        // Pause viTimer
+        if (viTimerRunning && !viTimerPaused) {
+            viElapsedBeforePause = System.currentTimeMillis() - viStartTime;
+            viTimerPaused = true;
         }
     }
 
@@ -41,6 +47,12 @@ public class Timer {
             startTime += pausedDuration; // Adjust start time by the paused duration
             timerPaused = false;
         }
+
+        if (viTimerPaused) {
+            long pausedDuration = System.currentTimeMillis() - pauseTime;
+            viStartTime = System.currentTimeMillis() - viElapsedBeforePause;
+            viTimerPaused = false;
+        }
     }
 
     public static long timeElapsed() {
@@ -49,7 +61,6 @@ public class Timer {
         }
         return System.currentTimeMillis() - startTime;
     }
-
 
     // Check if the stimulus point for the current interval has been reached
     public static boolean isStimulusReached() {
@@ -77,6 +88,7 @@ public class Timer {
         }
 
     }
+
     public static boolean timerStarted() {
         return timerStarted;  // Getter method to check if the timer has started
     }
@@ -127,11 +139,11 @@ public class Timer {
     }
 
 
-    public static void startViTimer() {
+    public static void startViTimer(int index) {
         if (viIntervals == null || viIntervals.isEmpty()) {
             viIntervals = Data.generateIntervals(); // Generate intervals from Data.java
         }
-        currentViIndex = 0;
+        viIndex = index;
         viStartTime = System.currentTimeMillis();
         viTimerRunning = true;
     }
@@ -140,33 +152,35 @@ public class Timer {
         return viIntervals;
     }
 
-    public static void newIntervals() {
-        viIntervals = Data.generateIntervals();
-    }
-
     public static long viTimeRemaining() {
-        if (!viTimerRunning || currentViIndex < 0 || currentViIndex >= viIntervals.size()) {
+        if (!viTimerRunning || viIndex < 0 || viIndex >= viIntervals.size()) {
             return 0;
         }
 
-        long elapsed = System.currentTimeMillis() - viStartTime;
-        long remaining = viIntervals.get(currentViIndex) - elapsed;
-
-        if (remaining <= 0) {
-            return 0;
+        long elapsed;
+        if (viTimerPaused) {
+            elapsed = viElapsedBeforePause;
+        } else {
+            elapsed = System.currentTimeMillis() - viStartTime;
         }
 
-        return remaining;
+        long remaining = viIntervals.get(viIndex) - elapsed;
+        return Math.max(remaining, 0);
     }
 
     public static void nextViInterval() {
-        if (viIntervals == null || viIntervals.isEmpty() || currentViIndex >= viIntervals.size() - 1) {
+        if (viIntervals == null || viIntervals.isEmpty()) {
             viIntervals = Data.generateIntervals();
-            currentViIndex = 0;
+            viIndex = 0;
+        } else if (viIndex >= viIntervals.size() - 1) {
+            viIntervals = Data.generateIntervals();
+            viIndex = 0;
         } else {
-            currentViIndex++;
+            viIndex++;
         }
+
         viStartTime = System.currentTimeMillis();
+        viElapsedBeforePause = 0; // reset pause tracking
     }
 
     public static boolean isViRunning() {
@@ -181,4 +195,14 @@ public class Timer {
         }
         return false; // no phase change
     }
+    public static void resetViState() {
+        viIntervals = Data.generateIntervals();
+        viIndex = -1;
+        viStartTime = 0;
+        viElapsedBeforePause = 0;
+        viTimerRunning = false;
+        viTimerPaused = false;
+    }
 }
+
+
