@@ -85,9 +85,10 @@ public class ClientEvents {
                 /* TODO : Coins must only drop under the correct conditions and then increment upon pick up
                             The correct conditions are in onBlockBreak function.
                             The following 2 lines of code are currently commented out so you can
-                            see what the coin drop should look like corresponding to "points" in GUI) */
+                            see what the coin drop should look like corresponding to "points" in GUI
+                            if you were to run the current code as it */
 
-                // This should add points when a coin is picked up, but doesn't check correct conditions before dropping coins
+                // This should add points when a coin is picked up, but currently doesn't check correct conditions before dropping coins so commented out rn
                 // ExpHud.incrementPts(.05);
                 // System.out.println("Coin picked up, points incremented");
 
