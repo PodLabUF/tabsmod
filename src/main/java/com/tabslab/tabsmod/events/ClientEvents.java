@@ -69,8 +69,8 @@ public class ClientEvents {
         @SubscribeEvent
         public static void onTicks(TickEvent.PlayerTickEvent event) {
             if (Timer.hasPhaseChanged() && initialBlockBreak) {
-                Timer.newIntervals();
-                Timer.startViTimer(); // "restart" Vi Timer on phase change
+                Timer.resetViState();
+                initialBlockBreak = false;
             }
         }
 
@@ -81,8 +81,16 @@ public class ClientEvents {
 
             // Check if the item is indeed the coin and if the coin pickup should trigger a point increment
             if (itemStack.getItem() == ItemInit.COIN.get()) {
-                ExpHud.incrementPts(1);  // This should add points when a coin is picked up
-                System.out.println("Coin picked up, points incremented");
+
+                /* TODO : Coins must only drop under the correct conditions and then increment upon pick up
+                            The correct conditions are in onBlockBreak function.
+                            The following 2 lines of code are currently commented out so you can
+                            see what the coin drop should look like corresponding to "points" in GUI
+                            if you were to run the current code as it */
+
+                // This should add points when a coin is picked up, but currently doesn't check correct conditions before dropping coins so commented out rn
+                // ExpHud.incrementPts(.05);
+                // System.out.println("Coin picked up, points incremented");
 
                 // Resume the timer when the coin is picked up
                 Timer.resumeTimer();
@@ -124,37 +132,38 @@ public class ClientEvents {
                 //  if the first block is broken, start interval schedule for each phase
                 if (!initialBlockBreak) {
                     initialBlockBreak = true;
-                    ExpHud.incrementCoins(.0005); // *** adjust point amount ***
-                    Timer.startViTimer();
+                    ExpHud.incrementPts(.05); // *** adjust point amount ***
+                    Timer.startViTimer(0);
                 }
 
+                // TODO : The correct conditions where user should get a coin drop / earn points
                 // if interval scheudule has started
                 if (initialBlockBreak && Timer.currentPhase() == 1) {
                     if (Timer.viTimeRemaining() == 0) {
                         if (block.equals(BlockInit.BLOCK_A.get())) {
-                            ExpHud.incrementCoins(.0005);
+                            ExpHud.incrementPts(.05);
                         }
                         else { // block b
-                            ExpHud.incrementCoins(-.0005); // penalty for breaking the wrong one
+                            ExpHud.incrementPts(-.05); // penalty for breaking the wrong one
                         }
                         Timer.nextViInterval();
                     }
                     else { // penalty for breaking before reinforcement time
-                        ExpHud.incrementCoins(-.0005);
+                        ExpHud.incrementPts(-.05);
                     }
                 }
                 else if (Timer.currentPhase() == 2) {
                     if (Timer.viTimeRemaining() == 0) {
                         if (block.equals(BlockInit.BLOCK_B.get())) { // reinforcement if block b
-                            ExpHud.incrementCoins(.0005);
+                            ExpHud.incrementPts(.05);
                         }
                         else { // block b
-                            ExpHud.incrementCoins(-.0005); // penalty for breaking the wrong one
+                            ExpHud.incrementPts(-.05); // penalty for breaking the wrong one
                         }
                         Timer.nextViInterval();
                     }
                     else { // penalty for breaking before reinforcement time
-                        ExpHud.incrementCoins(-.0005);
+                        ExpHud.incrementPts(-.05);
                     }
                 }
                 else if (Timer.currentPhase() == 3) {

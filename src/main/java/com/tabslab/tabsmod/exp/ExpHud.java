@@ -19,7 +19,7 @@ import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class ExpHud {
-    private static int numPts = 0;
+    private static double numPts = 0;
     private static int currentPhase = 0;
     private static double totalCoins = 0.0;
     private static boolean coinAvailable = false;
@@ -39,17 +39,10 @@ public class ExpHud {
     }
 
 
-    // Method to increment coins based on the current interval and stimulus
-    public static void incrementCoins(double x) {
-        int phase = Timer.currentPhase();
-        if (phase >= 1 && phase <= Timer.getTotalPhases()) {
-            totalCoins += x;
-        }
-    }
 
-    // Method to get the total coins as a formatted string
-    public static String getFormattedCoins() {
-        return String.format("%.4f", totalCoins);
+    // get the total coins as a string and rounds to nearest 4 decimal places
+    public static String getFormattedPoints() {
+        return String.format("%.4f", numPts);
     }
 
     public static final IGuiOverlay HUD = (((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
@@ -102,9 +95,9 @@ public class ExpHud {
             GuiComponent.drawString(poseStack, font, sessionOver, width, height, textColor);
 
         } else {
-            int[] widths = new int[4];
-            int[] heights = new int[4];
-            String[] strings = new String[4];
+            int[] widths = new int[3];
+            int[] heights = new int[3];
+            String[] strings = new String[3];
             Arrays.fill(widths, 0);
 
             // Time Elapsed
@@ -122,17 +115,11 @@ public class ExpHud {
             heights[1] = heights[0] + lineHeight + linePadding;
 
             // Current Points
-            String pts = "Points: " + numPts;
+            String pts = "Points: " + getFormattedPoints();
             strings[2] = pts;
             int ptsWidth = font.width(pts);
             widths[2] = ptsWidth;
             heights[2] = heights[1] + lineHeight + linePadding;
-
-            // Add Money Display
-            String coins = "Money: " + getFormattedCoins();
-            strings[3] = coins;
-            widths[3] = font.width(coins);
-            heights[3] = heights[2] + lineHeight + linePadding;
 
             int maxWidth = Arrays.stream(widths).max().getAsInt();
 
@@ -142,11 +129,11 @@ public class ExpHud {
         }
     }));
 
-    public static int getPts() {
+    public static double getPts() {
         return numPts;
     }
 
-    public static void incrementPts(int x) {
+    public static void incrementPts(double x) {
         System.out.println("-----------------------------------------");
         System.out.println("Increment points was called with x = " + x);
         System.out.println("-----------------------------------------");
