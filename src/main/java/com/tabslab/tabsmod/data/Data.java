@@ -170,8 +170,36 @@ public class Data {
 
             // Respawns blocks to be at an equidistant position from player
             // block a on left and block b on right ( *** adjust x pos *** )
-            BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 6);
-            BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 6);
+            //BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 6);
+            //BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 6);
+
+            // Get direction the player is facing
+            Vec3 lookVec = playerEntity.getLookAngle().normalize();
+
+            double sideOffset = 3.0;      // *** adjust distance to the left and right ***
+            double distanceForward = 6.0; // *** adjust distance in front of player ***
+            double verticalOffset = 1.0;  // how high it is off the ground (should stay at 1)
+
+            // Forward offset from player
+            double fx = lookVec.x * distanceForward;
+            double fz = lookVec.z * distanceForward;
+
+            // Get right vector (90° rotated horizontal vector)
+            Vec3 rightVec = new Vec3(-lookVec.z, 0, lookVec.x).normalize();
+
+            // Block A respawn pos
+            BlockPos updated_block_a_pos_new = new BlockPos(
+                    xPos + fx - rightVec.x * sideOffset,
+                    yPos + verticalOffset,
+                    zPos + fz - rightVec.z * sideOffset
+            );
+
+            // Block B respawn pos
+            BlockPos updated_block_b_pos_new = new BlockPos(
+                    xPos + fx + rightVec.x * sideOffset,
+                    yPos + verticalOffset,
+                    zPos + fz + rightVec.z * sideOffset
+            );
 
             // Place the blocks at the new random positions
             BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
