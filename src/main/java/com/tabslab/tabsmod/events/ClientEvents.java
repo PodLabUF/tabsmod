@@ -44,6 +44,11 @@ import java.util.List;
 import java.util.Map;
 
 public class ClientEvents {
+    private static boolean correctBlockHit = false;
+    private static boolean waitingForCoinDrop = false;
+    private static boolean viEndedNaturally = false;
+    private static boolean viWasRunningLastTick = false;
+    
     private static boolean initialBlockBreak;
     private static Vec3 lastPosition = new Vec3(0, 0, 0);
     private static List<Long> intervals;
@@ -72,15 +77,48 @@ public class ClientEvents {
                 Timer.resetViState();
                 initialBlockBreak = false;
             }
+
+            boolean viRunningNow = Timer.isViRunning();
+
+            if (viWasRunningLastTick && !viRunningNow) {
+                if (correctBlockHit && !waitingForCoinDrop) {
+                    Timer.pauseTimer();
+                    ExpHud.setCoinAvailable(true);
+                    waitingForCoinDrop = true;
+
+                    Timer.scheduleDelayedTask(() -> {
+                        if (ExpHud.isCoinAvailable()) {
+                            ExpHud.setShowPickupPrompt(true);
+                        }
+                    }, 5000);
+                } else {
+                    Timer.nextViInterval();
+                }
+
+                correctBlockHit = false;
+            }
+
+            viWasRunningLastTick = viRunningNow;
         }
 
         @SubscribeEvent
         public static void onItemPickup(PlayerEvent.ItemPickupEvent event) {
             ItemStack itemStack = event.getStack();  // This should be the correct method to get the item stack
-            Player player = event.getEntity();       // This should correctly reference the player picking up the item
+           // Player player = event.getEntity();       // This should correctly reference the player picking up the item
 
+            if (itemStack.getItem() == ItemInit.COIN.get() && waitingForCoinDrop) {
+                ExpHud.incrementPts(.05);
+                Timer.resumeTimer();
+                Timer.nextViInterval();
+
+                correctBlockHit = false;
+                waitingForCoinDrop = false;
+                viEndedNaturally = false;
+                ExpHud.setCoinAvailable(false);
+                ExpHud.setShowPickupPrompt(false);
+            }
             // Check if the item is indeed the coin and if the coin pickup should trigger a point increment
-            if (itemStack.getItem() == ItemInit.COIN.get()) {
+           // if (itemStack.getItem() == ItemInit.COIN.get()) {
 
                 /* TODO : Coins must only drop under the correct conditions and then increment upon pick up
                             The correct conditions are in onBlockBreak function.
@@ -93,17 +131,62 @@ public class ClientEvents {
                 // System.out.println("Coin picked up, points incremented");
 
                 // Resume the timer when the coin is picked up
-                Timer.resumeTimer();
-            }
+               // Timer.resumeTimer();
+           // }
 
             // Coin picked up, reset the prompt
-            if (itemStack.getItem() == ItemInit.COIN.get()) {
-                ExpHud.setCoinAvailable(false);
-                ExpHud.setShowPickupPrompt(false);
+           // if (itemStack.getItem() == ItemInit.COIN.get()) {
+             //   ExpHud.setCoinAvailable(false);
+               // ExpHud.setShowPickupPrompt(false);
+            //}
+        }
+
+        @SubscribeEvent
+        public static void onBlockBreak(BreakEvent event) {
+            Block block = event.getState().getBlock();
+
+            if (block.equals(BlockInit.BLOCK_A.get()) || block.equals(BlockInit.BLOCK_B.get())) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("block_type", block.getDescriptionId());
+                data.put("position", event.getPos());
+                data.put("phase", Timer.currentPhase());
+                data.put("vi_time_remaining", Timer.viTimeRemaining());
+                Data.addEvent("block_broken", Timer.timeElapsed(), data);
+
+                if (!Timer.timerStarted()) Timer.startTimer();
+                if (!initialBlockBreak) {
+                    initialBlockBreak = true;
+                    Timer.startViTimer(0);
+                }
+
+                if (Timer.viTimeRemaining() > 0) {
+                    if ((Timer.currentPhase() == 1 && block.equals(BlockInit.BLOCK_B.get())) ||
+                            (Timer.currentPhase() == 2 && block.equals(BlockInit.BLOCK_A.get()))) {
+                        ExpHud.incrementPts(-.05);
+                    }
+                }
+
+                if (Timer.viTimeRemaining() > 0) {
+                    if ((Timer.currentPhase() == 1 && block.equals(BlockInit.BLOCK_A.get())) ||
+                            (Timer.currentPhase() == 2 && block.equals(BlockInit.BLOCK_B.get()))) {
+                        correctBlockHit = true;
+                    }
+                }
+
+                // Respawn blocks
+                if (block.equals(BlockInit.BLOCK_A.get())) {
+                    BlockA.broken(event);
+                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
+                } else {
+                    BlockB.broken(event);
+                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
+                }
+            } else {
+                event.setCanceled(true);
             }
         }
 
-
+/*
         // Will be run when a block is broken
         @SubscribeEvent
         public static void onBlockBreak(BreakEvent event) {
@@ -207,6 +290,7 @@ public class ClientEvents {
                 event.setCanceled(true);
             }
         }
+*/
 
         @SubscribeEvent
         public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
