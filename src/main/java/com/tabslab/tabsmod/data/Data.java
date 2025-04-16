@@ -147,8 +147,13 @@ public class Data {
             } else {
                 // Give coins
                 int phase = Timer.currentPhase();
-                lvl.destroyBlock(block_a_pos, phase == 1 && blockBroken == BlockBroken.BlockA);
-                lvl.destroyBlock(block_b_pos, phase == 2 && blockBroken == BlockBroken.BlockB);
+                boolean canDestroyA = phase == 1 && blockBroken == BlockBroken.BlockA && Timer.viTimeRemaining() == 0;
+                boolean canDestroyB = phase == 2 && blockBroken == BlockBroken.BlockB && Timer.viTimeRemaining() == 0;
+
+                lvl.destroyBlock(block_a_pos, canDestroyA);
+                lvl.destroyBlock(block_b_pos, canDestroyB);
+                //lvl.destroyBlock(block_a_pos, phase == 1 && blockBroken == BlockBroken.BlockA);
+                //lvl.destroyBlock(block_b_pos, phase == 2 && blockBroken == BlockBroken.BlockB);
             }
 
             // Get the chunks where block_a and block_b are located
