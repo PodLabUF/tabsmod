@@ -79,27 +79,13 @@ public class ClientEvents {
             ItemStack itemStack = event.getStack();  // This should be the correct method to get the item stack
             Player player = event.getEntity();       // This should correctly reference the player picking up the item
 
-            // Check if the item is indeed the coin and if the coin pickup should trigger a point increment
-            if (itemStack.getItem() == ItemInit.COIN.get()) {
-
-                /* TODO : Coins must only drop under the correct conditions and then increment upon pick up
-                            The correct conditions are in onBlockBreak function.
-                            The following 2 lines of code are currently commented out so you can
-                            see what the coin drop should look like corresponding to "points" in GUI
-                            if you were to run the current code as it */
-
-                // This should add points when a coin is picked up, but currently doesn't check correct conditions before dropping coins so commented out rn
-                // ExpHud.incrementPts(.05);
-                // System.out.println("Coin picked up, points incremented");
-
-                // Resume the timer when the coin is picked up
-                Timer.resumeTimer();
-            }
-
             // Coin picked up, reset the prompt
             if (itemStack.getItem() == ItemInit.COIN.get()) {
+                ExpHud.incrementPts(.05);
                 ExpHud.setCoinAvailable(false);
                 ExpHud.setShowPickupPrompt(false);
+                Data.respawnBlocks(event.getEntity().getLevel(), false);
+                Timer.resumeTimer();
             }
         }
 
@@ -118,11 +104,6 @@ public class ClientEvents {
                 data.put("phase", Timer.currentPhase());
                 data.put("vi_time_remaining", Timer.viTimeRemaining());
                 Data.addEvent("block_broken", Timer.timeElapsed(), data);
-                // Pause the timer when a coin is potentially dropped
-                //Timer.pauseTimer();
-
-                // Mark the coin as available when it drops
-                //ExpHud.setCoinAvailable(true);
 
                 // Check if timer has not been started yet
                 if (!Timer.timerStarted()) {
@@ -132,7 +113,6 @@ public class ClientEvents {
                 //  if the first block is broken, start interval schedule for each phase
                 if (!initialBlockBreak) {
                     initialBlockBreak = true;
-                    ExpHud.incrementPts(.05); // *** adjust point amount ***
                     Timer.startViTimer(0);
                 }
 
@@ -140,30 +120,12 @@ public class ClientEvents {
                 // if interval scheudule has started
                 if (initialBlockBreak && Timer.currentPhase() == 1) {
                     if (Timer.viTimeRemaining() == 0) {
-                        if (block.equals(BlockInit.BLOCK_A.get())) {
-                            ExpHud.incrementPts(.05);
-                        }
-                        else { // block b
-                            ExpHud.incrementPts(-.05); // penalty for breaking the wrong one
-                        }
                         Timer.nextViInterval();
-                    }
-                    else { // penalty for breaking before reinforcement time
-                        ExpHud.incrementPts(-.05);
                     }
                 }
                 else if (Timer.currentPhase() == 2) {
                     if (Timer.viTimeRemaining() == 0) {
-                        if (block.equals(BlockInit.BLOCK_B.get())) { // reinforcement if block b
-                            ExpHud.incrementPts(.05);
-                        }
-                        else { // block b
-                            ExpHud.incrementPts(-.05); // penalty for breaking the wrong one
-                        }
                         Timer.nextViInterval();
-                    }
-                    else { // penalty for breaking before reinforcement time
-                        ExpHud.incrementPts(-.05);
                     }
                 }
                 else if (Timer.currentPhase() == 3) {
@@ -196,10 +158,10 @@ public class ClientEvents {
                 // Allow breaking BlockA and BlockB
                 if (block.equals(BlockInit.BLOCK_A.get())) {
                     BlockA.broken(event);
-                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockA);
+                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA);
                 } else if (block.equals(BlockInit.BLOCK_B.get())) {
                     BlockB.broken(event);
-                    Data.respawnBlocks(event.getPlayer().getLevel(), false, BlockBroken.BlockB);
+                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB);
                 }
             }
             else {
@@ -235,7 +197,7 @@ public class ClientEvents {
             Data.setPlayerEntity(event.getEntity());
 
             // First, spawn block_a and block_b equidistant from player
-            Data.respawnBlocks(event.getEntity().getLevel(), true, BlockBroken.Neither);
+            Data.respawnBlocks(event.getEntity().getLevel(), true);
 
             // Flag for interval
             initialBlockBreak = false;

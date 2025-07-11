@@ -132,7 +132,80 @@ public class Data {
         return blockPositions.get("block_b");
     }
 
-    public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
+    public static void handleBlocksBreak(Level lvl, BlockBroken blockBroken) {
+        BlockPos block_a_pos = blockPositions.get("block_a");
+        BlockPos block_b_pos = blockPositions.get("block_b");
+
+        if (block_a_pos != null && block_b_pos != null) {
+            int phase = Timer.currentPhase();
+
+            boolean isCorrect =
+                    (phase == 1 && blockBroken == BlockBroken.BlockA) ||
+                            (phase == 2 && blockBroken == BlockBroken.BlockB);
+
+            if (isCorrect) {
+                // Destroy both blocks - only correct one drops
+                lvl.destroyBlock(block_a_pos, phase == 1);
+                lvl.destroyBlock(block_b_pos, phase == 2);
+
+                // Coin drop logic
+                Timer.pauseTimer();
+                ExpHud.setCoinAvailable(true);
+
+                Timer.scheduleDelayedTask(() -> {
+                    if (ExpHud.isCoinAvailable()) {
+                        ExpHud.setShowPickupPrompt(true);
+                    }
+                }, 5000);
+            } else {
+                // Wrong block - destroy both without drops and respawn
+                lvl.destroyBlock(block_a_pos, false);
+                lvl.destroyBlock(block_b_pos, false);
+                Data.respawnBlocks(lvl, false);
+            }
+        }
+    }
+
+    public static void respawnBlocks(Level lvl, boolean initialSpawn) {
+        // Gets position of player
+        BlockPos playerPos = playerEntity.getOnPos();
+        int xPos = playerPos.getX();
+        int yPos = playerPos.getY();
+        int zPos = playerPos.getZ();
+
+        // Calculate new positions relative to player
+        BlockPos newBlockAPos = new BlockPos(xPos + 3, yPos + 1, zPos + 5);
+        BlockPos newBlockBPos = new BlockPos(xPos - 3, yPos + 1, zPos + 5);
+
+        // Place the blocks at the new positions
+        BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
+        BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
+        boolean setA = lvl.setBlockAndUpdate(newBlockAPos, blockStateA);
+        boolean setB = lvl.setBlockAndUpdate(newBlockBPos, blockStateB);
+
+        // Log event
+        Map<String, Object> data = new HashMap<>();
+        data.put("block_a_spawn", newBlockAPos);
+        data.put("block_a_set", setA);
+        data.put("block_b_spawn", newBlockBPos);
+        data.put("block_b_set", setB);
+
+        if (initialSpawn) {
+            addEvent("blocks_spawn_initial", 0, data);
+        } else {
+            long time = Timer.timeElapsed();
+            addEvent("blocks_spawn", time, data);
+        }
+
+        // Update stored positions
+        blockPositions.clear();
+        blockPositions.put("block_a", newBlockAPos);
+        blockPositions.put("block_b", newBlockBPos);
+    }
+
+
+
+    /*public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
 
         boolean dev = TabsMod.getDev();
         if (!dev) {
@@ -199,65 +272,7 @@ public class Data {
             blockPositions.put("block_b", updated_block_b_pos_new);
 
         }
-    }
-
-    /*public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
-        BlockPos playerPos = playerEntity.blockPosition();
-        Random random = new Random();
-        Vec3 direction = Vec3.directionFromRotation(0, random.nextInt(360));
-        double distance = 10.0; // Distance from player
-
-        // Calculate new positions for block A and block B
-        BlockPos blockAPos = new BlockPos(
-                playerPos.getX() + direction.x * distance,
-                playerPos.getY(),
-                playerPos.getZ() + direction.z * distance
-        );
-
-        // Ensure block B is exactly 4 blocks away from block A in one direction
-        Vec3 directionB = direction.yRot((float) Math.PI / 2); // Rotate 90 degrees to original direction for simplicity
-        BlockPos blockBPos = new BlockPos(
-                blockAPos.getX() + directionB.x * 4,
-                blockAPos.getY(),
-                blockAPos.getZ() + directionB.z * 4
-        );
-
-        // Destroy old blocks if they exist, considering the phase
-        if (!initialSpawn) {
-            int phase = Timer.currentPhase();
-            lvl.destroyBlock(Data.getBlockAPos(), phase == 1 && blockBroken == BlockBroken.BlockA);
-            lvl.destroyBlock(Data.getBlockBPos(), phase == 2 && blockBroken == BlockBroken.BlockB);
-        }
-
-        // Place new blocks
-        BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
-        BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
-        boolean setA = lvl.setBlockAndUpdate(blockAPos, blockStateA);
-        boolean setB = lvl.setBlockAndUpdate(blockBPos, blockStateB);
-
-        // Log the event
-        Map<String, Object> data = new HashMap<>();
-        data.put("block_a_spawn", blockAPos);
-        data.put("block_a_set", setA);
-        data.put("block_b_spawn", blockBPos);
-        data.put("block_b_set", setB);
-        long time = Timer.timeElapsed();
-        if (initialSpawn) {
-            Data.addEvent("blocks_spawn_initial", time, data);
-        } else {
-            Data.addEvent("blocks_spawn", time, data);
-        }
-
-        // Check if stimulus point is reached and increment coins
-        if (Timer.isStimulusReached()) {
-            ExpHud.incrementCoins();
-        }
-
-        // Update the stored block positions
-        Data.blockPositions.put("block_a", blockAPos);
-        Data.blockPositions.put("block_b", blockBPos);
     }*/
-
 
     private static void removeAllBlocks(Level lvl, Block targetBlock) {
         for (BlockPos pos : BlockPos.betweenClosed(lvl.getMinBuildHeight(), 0, lvl.getMinBuildHeight(), lvl.getMaxBuildHeight(), 255, lvl.getMaxBuildHeight())) {
