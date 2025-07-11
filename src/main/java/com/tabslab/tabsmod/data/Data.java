@@ -167,17 +167,41 @@ public class Data {
     }
 
     public static void respawnBlocks(Level lvl, boolean initialSpawn) {
-        // Gets position of player
+        // Gets player position
         BlockPos playerPos = playerEntity.getOnPos();
         int xPos = playerPos.getX();
         int yPos = playerPos.getY();
         int zPos = playerPos.getZ();
 
-        // Calculate new positions relative to player
-        BlockPos newBlockAPos = new BlockPos(xPos + 3, yPos + 1, zPos + 5);
-        BlockPos newBlockBPos = new BlockPos(xPos - 3, yPos + 1, zPos + 5);
+        // Get direction the player is facing
+        Vec3 lookVec = playerEntity.getLookAngle().normalize();
 
-        // Place the blocks at the new positions
+        double sideOffset = 3.0;      // Left/right distance
+        double forwardOffset = 5.0; // Forward distance
+        double heightOffset = 1.0;  // Height
+
+        // Forward offset
+        double fx = lookVec.x * forwardOffset;
+        double fz = lookVec.z * forwardOffset;
+
+        // Right vector (90° rotated horizontal vector)
+        Vec3 rightVec = new Vec3(-lookVec.z, 0, lookVec.x).normalize();
+
+        // Block A on left
+        BlockPos newBlockAPos = new BlockPos(
+                xPos + fx - rightVec.x * sideOffset,
+                yPos + heightOffset,
+                zPos + fz - rightVec.z * sideOffset
+        );
+
+        // Block B on right
+        BlockPos newBlockBPos = new BlockPos(
+                xPos + fx + rightVec.x * sideOffset,
+                yPos + heightOffset,
+                zPos + fz + rightVec.z * sideOffset
+        );
+
+        // Place the blocks
         BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
         BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
         boolean setA = lvl.setBlockAndUpdate(newBlockAPos, blockStateA);
@@ -197,11 +221,12 @@ public class Data {
             addEvent("blocks_spawn", time, data);
         }
 
-        // Update stored positions
+        // Update positions
         blockPositions.clear();
         blockPositions.put("block_a", newBlockAPos);
         blockPositions.put("block_b", newBlockBPos);
     }
+
 
 
 
