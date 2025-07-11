@@ -162,7 +162,9 @@ public class Data {
                         }
                     }, 5000);
 
-                    Timer.nextViInterval();
+                    if (!initialBlockBreak) {
+                        Timer.nextViInterval();
+                    }
                 } else {
                     // Not eligible - immediately respawn
                     Data.respawnBlocks(lvl, false);
