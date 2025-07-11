@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ClientEvents {
-    private static boolean initialBlockBreak;
+    public static boolean initialBlockBreak;
     private static Vec3 lastPosition = new Vec3(0, 0, 0);
     private static List<Long> intervals;
 
@@ -70,7 +70,7 @@ public class ClientEvents {
         public static void onTicks(TickEvent.PlayerTickEvent event) {
             if (Timer.hasPhaseChanged() && initialBlockBreak) {
                 Timer.resetViState();
-                initialBlockBreak = false;
+                initialBlockBreak = true;
             }
         }
 
@@ -111,58 +111,19 @@ public class ClientEvents {
                 }
                 
                 //  if the first block is broken, start interval schedule for each phase
-                if (!initialBlockBreak) {
-                    initialBlockBreak = true;
+                if (initialBlockBreak) {
                     Timer.startViTimer(0);
-                }
-
-                // TODO : The correct conditions where user should get a coin drop / earn points
-                // if interval scheudule has started
-                if (initialBlockBreak && Timer.currentPhase() == 1) {
-                    if (Timer.viTimeRemaining() == 0) {
-                        Timer.nextViInterval();
-                    }
-                }
-                else if (Timer.currentPhase() == 2) {
-                    if (Timer.viTimeRemaining() == 0) {
-                        Timer.nextViInterval();
-                    }
-                }
-                else if (Timer.currentPhase() == 3) {
-                    // do nothing
-                }
-
-                if (!ExpHud.isCoinAvailable()) {
-                    if (Timer.currentPhase() == 1 && block.equals(BlockInit.BLOCK_A.get())) {
-                        Timer.pauseTimer();
-                        ExpHud.setCoinAvailable(true);
-
-                        Timer.scheduleDelayedTask(() -> {
-                            if (ExpHud.isCoinAvailable()) {
-                                ExpHud.setShowPickupPrompt(true);
-                            }
-                        }, 5000);
-                    }
-                    else if (Timer.currentPhase() == 2 && block.equals(BlockInit.BLOCK_B.get())) {
-                        Timer.pauseTimer();
-                        ExpHud.setCoinAvailable(true);
-
-                        Timer.scheduleDelayedTask(() -> {
-                            if (ExpHud.isCoinAvailable()) {
-                                ExpHud.setShowPickupPrompt(true);
-                            }
-                        }, 5000);
-                    }
                 }
 
                 // Allow breaking BlockA and BlockB
                 if (block.equals(BlockInit.BLOCK_A.get())) {
                     BlockA.broken(event);
-                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA);
+                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA, initialBlockBreak);
                 } else if (block.equals(BlockInit.BLOCK_B.get())) {
                     BlockB.broken(event);
-                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB);
+                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB, initialBlockBreak);
                 }
+                initialBlockBreak = false;
             }
             else {
                 // Prevent breaking all other blocks (ground)
@@ -200,7 +161,7 @@ public class ClientEvents {
             Data.respawnBlocks(event.getEntity().getLevel(), true);
 
             // Flag for interval
-            initialBlockBreak = false;
+            initialBlockBreak = true;
 
             // Get event data
             long time = Timer.timeElapsed();
