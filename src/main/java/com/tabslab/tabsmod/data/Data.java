@@ -132,7 +132,7 @@ public class Data {
         return blockPositions.get("block_b");
     }
 
-    public static void handleBlocksBreak(Level lvl, BlockBroken blockBroken) {
+    public static void handleBlocksBreak(Level lvl, BlockBroken blockBroken, boolean initialBlockBreak) {
         BlockPos block_a_pos = blockPositions.get("block_a");
         BlockPos block_b_pos = blockPositions.get("block_b");
 
@@ -144,19 +144,32 @@ public class Data {
                             (phase == 2 && blockBroken == BlockBroken.BlockB);
 
             if (isCorrect) {
+                // Check eligibility to drop coin
+                boolean dropCoin = initialBlockBreak || Timer.viTimeRemaining() == 0;
+
                 // Destroy both blocks - only correct one drops
-                lvl.destroyBlock(block_a_pos, phase == 1);
-                lvl.destroyBlock(block_b_pos, phase == 2);
+                lvl.destroyBlock(block_a_pos, dropCoin && phase == 1);
+                lvl.destroyBlock(block_b_pos, dropCoin && phase == 2);
 
-                // Coin drop logic
-                Timer.pauseTimer();
-                ExpHud.setCoinAvailable(true);
+                if (dropCoin) {
+                    // Coin drop logic
+                    Timer.pauseTimer();
+                    ExpHud.setCoinAvailable(true);
 
-                Timer.scheduleDelayedTask(() -> {
-                    if (ExpHud.isCoinAvailable()) {
-                        ExpHud.setShowPickupPrompt(true);
+                    Timer.scheduleDelayedTask(() -> {
+                        if (ExpHud.isCoinAvailable()) {
+                            ExpHud.setShowPickupPrompt(true);
+                        }
+                    }, 5000);
+
+                    if (!initialBlockBreak) {
+                        Timer.nextViInterval();
                     }
-                }, 5000);
+                } else {
+                    // Not eligible - immediately respawn
+                    Data.respawnBlocks(lvl, false);
+                }
+
             } else {
                 // Wrong block - destroy both without drops and respawn
                 lvl.destroyBlock(block_a_pos, false);
