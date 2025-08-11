@@ -30,7 +30,7 @@ public class BlockB extends Block {
         Map<String, Object> data = new HashMap<>();
         data.put("position", event.getPos());
         data.put("cumulative_points", ExpHud.getPts());
-        Data.addEvent("block_a_break", time, data);
+        Data.addEvent("block_b_break", time, data);
 
     }
 

@@ -42,7 +42,8 @@ public class ExpHud {
 
     // get the total coins as a string and rounds to nearest 4 decimal places
     public static String getFormattedPoints() {
-        return String.format("%.4f", numPts);
+        // Shows number of points without decimal points
+        return String.format("%d", (long) numPts);
     }
 
     public static final IGuiOverlay HUD = (((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
@@ -91,8 +92,22 @@ public class ExpHud {
             int width = screenWidth - font.width(thankYou) - padding;
             int height = (screenHeight / 2) - lineHeight;
 
-
             GuiComponent.drawString(poseStack, font, sessionOver, width, height, textColor);
+            GuiComponent.drawString(poseStack, font, thankYou, width, height+20, textColor);
+
+            Minecraft mc = Minecraft.getInstance();
+            new Thread(() -> {
+
+                try {
+                    Thread.sleep(3000); // Waits 3000 ms
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                Minecraft.getInstance().execute(() -> Minecraft.getInstance().stop());
+
+            }).start();
 
         } else {
             int[] widths = new int[3];

@@ -38,6 +38,11 @@ import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.entity.Mob;
 
+//Imports for Saving Data File with World Name
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +73,7 @@ public class ClientEvents {
         // tick is unit of time within game's update cycle
         @SubscribeEvent
         public static void onTicks(TickEvent.PlayerTickEvent event) {
-            if (Timer.hasPhaseChanged() && initialBlockBreak) {
+            if (Timer.hasPhaseChanged() && !initialBlockBreak) {
                 Timer.resetViState();
                 initialBlockBreak = true;
             }
@@ -81,11 +86,12 @@ public class ClientEvents {
 
             // Coin picked up, reset the prompt
             if (itemStack.getItem() == ItemInit.COIN.get()) {
-                ExpHud.incrementPts(.05);
+                ExpHud.incrementPts(100); // Points Adjustable AMV
                 ExpHud.setCoinAvailable(false);
                 ExpHud.setShowPickupPrompt(false);
                 Data.respawnBlocks(event.getEntity().getLevel(), false);
                 Timer.resumeTimer();
+                Data.nextCoinToken(); //AMV for timing of pick-up Prompt
             }
         }
 
@@ -105,25 +111,44 @@ public class ClientEvents {
                 data.put("vi_time_remaining", Timer.viTimeRemaining());
                 Data.addEvent("block_broken", Timer.timeElapsed(), data);
 
-                // Check if timer has not been started yet
-                if (!Timer.timerStarted()) {
-                    Timer.startTimer();  // Start the timer on first block break
+                //AMV
+                int c_Phase = Timer.currentPhase();
+                if (c_Phase < 2) {
+                    // Allow breaking BlockA and BlockB
+                    if (block.equals(BlockInit.BLOCK_A.get())) {
+                        // Check if timer has not been started yet
+                        if (!Timer.timerStarted()) {
+                            Timer.startTimer();  // Start the timer on first block break
+                        }
+                        //  if the first block is broken, start interval schedule for each phase
+                        if (initialBlockBreak) {
+                            Timer.startViTimer(0);
+                        }
+                        BlockA.broken(event);
+                        Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA, initialBlockBreak);
+                        initialBlockBreak = false;
+                    }
+                    else if (block.equals(BlockInit.BLOCK_B.get())) {
+                        BlockB.broken(event);
+                        Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB, initialBlockBreak);
+                    }
                 }
-                
-                //  if the first block is broken, start interval schedule for each phase
-                if (initialBlockBreak) {
-                    Timer.startViTimer(0);
+                else if (c_Phase > 1) {
+                    // Allow breaking BlockA and BlockB
+                    if (block.equals(BlockInit.BLOCK_A.get())) {
+                        BlockA.broken(event);
+                        Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA, initialBlockBreak);
+                    }
+                    else if (block.equals(BlockInit.BLOCK_B.get())) {
+                        //  if the first block is broken, start interval schedule for each phase
+                        if (initialBlockBreak) {
+                            Timer.startViTimer(0);
+                        }
+                        BlockB.broken(event);
+                        Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB, initialBlockBreak);
+                        initialBlockBreak = false;
+                    }
                 }
-
-                // Allow breaking BlockA and BlockB
-                if (block.equals(BlockInit.BLOCK_A.get())) {
-                    BlockA.broken(event);
-                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockA, initialBlockBreak);
-                } else if (block.equals(BlockInit.BLOCK_B.get())) {
-                    BlockB.broken(event);
-                    Data.handleBlocksBreak(event.getPlayer().getLevel(), BlockBroken.BlockB, initialBlockBreak);
-                }
-                initialBlockBreak = false;
             }
             else {
                 // Prevent breaking all other blocks (ground)
@@ -185,6 +210,11 @@ public class ClientEvents {
             lvl.setRaining(false);
             data.put("is_raining", lvl.isRaining());
             data.put("is_thundering", lvl.isThundering());
+
+            if (!(event.getEntity() instanceof ServerPlayer player)) return;
+            ServerLevel world = player.getLevel();
+            String worldName = world.getServer().getWorldData().getLevelName();
+            Data.setName(worldName); //AMV
 
             // Set name
             Data.setName(name);
