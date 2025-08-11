@@ -35,7 +35,16 @@ public class Data {
     private static int numberOfSteps = 10; // total number of intervals (steps)
     private static double probability = .5; // probability of reinforcement
 
+    //AMV for timing of pickupCoinPrompt
+    public static int coinToken = 0;
+    public static int getCoinToken(){
+        return coinToken;
+    }
+    public static void nextCoinToken(){
+        coinToken++;
+    }
 
+    // Parameters for Flesher-Hoffman interval generation
     public static void setParameters(double sec, int steps, double prob) {
         Data.meanIntervalValue = sec;
         Data.numberOfSteps = steps;
@@ -86,6 +95,25 @@ public class Data {
 
             // update baseTime to the end of the current interval for the next iteration
             baseTime = endTime;
+        }
+
+        //AMV To Ensure always 2 seconds
+        long totalDuration_vi = 0;
+        for (long duration : intervalDurations) {
+            totalDuration_vi += duration;
+        }
+        if(totalDuration_vi > 20000){
+            long excess = totalDuration_vi - 20000;
+            int lastIndex = intervalDurations.size() - 1;
+            long Last_Val = intervalDurations.get(lastIndex);
+            Long New_Last_Val = Math.max(0, Last_Val - excess);
+            intervalDurations.set(lastIndex, New_Last_Val);
+        } else if (totalDuration_vi < 20000) {
+            long excess = 20000 - totalDuration_vi;
+            int lastIndex = intervalDurations.size() - 1;
+            long Last_Val = intervalDurations.get(lastIndex);
+            Long New_Last_Val = Math.max(0, Last_Val + excess);
+            intervalDurations.set(lastIndex, New_Last_Val);
         }
 
         // shuffle list
@@ -156,8 +184,17 @@ public class Data {
                     Timer.pauseTimer();
                     ExpHud.setCoinAvailable(true);
 
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("phase", Timer.currentPhase());
+                    Data.addEvent("reinforcer", Timer.timeElapsed(), data);
+
+                    //AMV Timing of pickup Prompt
+                    ExpHud.setShowPickupPrompt(false);
+                    nextCoinToken();
+                    int currentToken = getCoinToken();
+
                     Timer.scheduleDelayedTask(() -> {
-                        if (ExpHud.isCoinAvailable()) {
+                        if (ExpHud.isCoinAvailable() && getCoinToken() == currentToken) {
                             ExpHud.setShowPickupPrompt(true);
                         }
                     }, 5000);
@@ -239,78 +276,6 @@ public class Data {
         blockPositions.put("block_a", newBlockAPos);
         blockPositions.put("block_b", newBlockBPos);
     }
-
-
-
-
-    /*public static void respawnBlocks(Level lvl, boolean initialSpawn, BlockBroken blockBroken) {
-
-        boolean dev = TabsMod.getDev();
-        if (!dev) {
-            // First, remove old blocks if it isn't the initial level
-
-            BlockPos block_a_pos = blockPositions.get("block_a");
-            BlockPos block_b_pos = blockPositions.get("block_b");
-
-            if (block_a_pos == null || block_b_pos == null) {
-                block_a_pos = playerEntity.blockPosition();
-                block_b_pos = playerEntity.blockPosition();
-            } else {
-                // Give coins
-                int phase = Timer.currentPhase();
-                lvl.destroyBlock(block_a_pos, phase == 1 && blockBroken == BlockBroken.BlockA);
-                lvl.destroyBlock(block_b_pos, phase == 2 && blockBroken == BlockBroken.BlockB);
-            }
-
-            // Get the chunks where block_a and block_b are located
-            LevelChunk chunk_a = lvl.getChunkAt(block_a_pos);
-            LevelChunk chunk_b = lvl.getChunkAt(block_b_pos);
-
-            // Generate two random positions within the chunks
-            Random random = new Random();
-            int chunkX_a = chunk_a.getPos().x;
-            int chunkZ_a = chunk_a.getPos().z;
-            int chunkX_b = chunk_b.getPos().x;
-            int chunkZ_b = chunk_b.getPos().z;
-
-            // Gets position of player
-            BlockPos playerPos = playerEntity.getOnPos();
-            int xPos = playerPos.getX();
-            int yPos = playerPos.getY();
-            int zPos = playerPos.getZ();
-
-            // Respawns blocks to be at an equidistant position from player
-            // block a on left and block b on right ( *** adjust x pos *** )
-            BlockPos updated_block_a_pos_new = new BlockPos(xPos + 3, yPos + 1, zPos + 6);
-            BlockPos updated_block_b_pos_new = new BlockPos(xPos - 3, yPos + 1, zPos + 6);
-
-            // Place the blocks at the new random positions
-            BlockState blockStateA = BlockInit.BLOCK_A.get().defaultBlockState();
-            BlockState blockStateB = BlockInit.BLOCK_B.get().defaultBlockState();
-            boolean set_a = lvl.setBlockAndUpdate(updated_block_a_pos_new, blockStateA);
-            boolean set_b = lvl.setBlockAndUpdate(updated_block_b_pos_new, blockStateB);
-
-            // Log as event
-            Map<String, Object> data = new HashMap<>();
-            data.put("block_a_spawn", updated_block_a_pos_new);
-            data.put("block_a_set", set_a);
-            data.put("block_b_spawn", updated_block_b_pos_new);
-            data.put("block_b_set", set_b);
-            if (initialSpawn) {
-                addEvent("blocks_spawn_initial", 0, data);
-            } else {
-                long time = Timer.timeElapsed();
-                addEvent("blocks_spawn", time, data);
-            }
-
-            // Update new block positions
-            blockPositions.clear();
-
-            blockPositions.put("block_a", updated_block_a_pos_new);
-            blockPositions.put("block_b", updated_block_b_pos_new);
-
-        }
-    }*/
 
     private static void removeAllBlocks(Level lvl, Block targetBlock) {
         for (BlockPos pos : BlockPos.betweenClosed(lvl.getMinBuildHeight(), 0, lvl.getMinBuildHeight(), lvl.getMaxBuildHeight(), 255, lvl.getMaxBuildHeight())) {
